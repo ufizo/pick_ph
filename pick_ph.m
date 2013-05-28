@@ -51,7 +51,7 @@ function pick_ph_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to pick_ph (see VARARGIN)
-folder_name = '/home/ufizo/work/';
+folder_name = '/home/';
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
 
@@ -84,7 +84,7 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-folder_name = uigetdir('/home/ufizo/','Select your DATA dir');
+folder_name = uigetdir('/home/','Select your DATA dir');
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
 checkdata(handles);
@@ -103,7 +103,7 @@ function listbox1_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 dir_list = get(handles.listbox1,'String');
-path1= strcat(get(handles.work_dir,'string'),dir_list(get(handles.listbox1,'value')));
+path1= strcat(get(handles.work_dir,'string'),'/',dir_list(get(handles.listbox1,'value')));
 load_listBox2(path1{1},handles);
 %update_plots(handles);
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox1 contents as cell array
@@ -183,7 +183,7 @@ function listbox2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 dir_list1 = get(handles.listbox1,'String');
 dir_list2 = get(handles.listbox2,'String');
-path_data= strcat(get(handles.work_dir,'string'),dir_list1(get(handles.listbox1,'value')),'/',dir_list2(get(handles.listbox2,'value')),'/result_');
+path_data= strcat(get(handles.work_dir,'string'),'/',dir_list1(get(handles.listbox1,'value')),'/',dir_list2(get(handles.listbox2,'value')),'/result_');
 waveform = load (path_data{1});
 update_plots(waveform,handles);
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox2 contents as cell array
