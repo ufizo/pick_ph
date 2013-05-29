@@ -1,27 +1,16 @@
 function varargout = pick_ph(varargin)
 % PICK_PH MATLAB code for pick_ph.fig
-%      PICK_PH, by itself, creates a new PICK_PH or raises the existing
-%      singleton*.
 %
-%      H = PICK_PH returns the handle to a new PICK_PH or the handle to
-%      the existing singleton*.
+% A user interfacet to pick phases and assign quality to data
+% output by icorrect.
+% http://www.seismotoolbox.ca/icorrect.html
 %
-%      PICK_PH('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in PICK_PH.M with the given input arguments.
+% Saves the data in a catalogue file, stored in the
+% root of the work directory.
 %
-%      PICK_PH('Property','Value',...) creates a new PICK_PH or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before pick_ph_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to pick_ph_OpeningFcn via varargin.
+% Arpit Singh
+% me@arpitsingh.in
 %
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
-
-% Edit the above text to modify the response to help pick_ph
-
 % Last Modified by GUIDE v2.5 28-May-2013 23:00:37
 
 % Begin initialization code - DO NOT EDIT
@@ -46,13 +35,9 @@ end
 
 % --- Executes just before pick_ph is made visible.
 function pick_ph_OpeningFcn(hObject, eventdata, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to pick_ph (see VARARGIN)
-folder_name = '/home/ufizo/work';
-%folder_name = '/home/';
+% Default work directory when program is loaded
+%folder_name = '/home/ufizo/work';
+folder_name = '/home/';
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
 
@@ -71,53 +56,39 @@ guidata(hObject, handles);
 
 % --- Outputs from this function are returned to the command line.
 function varargout = pick_ph_OutputFcn(hObject, eventdata, handles) 
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
 
-% --- Executes on button press in pushbutton1.
+% --- Executes on button press to load the work directory, or the 
+% directory which contains the data processed by icorrect
 function pushbutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 folder_name = uigetdir('/home/','Select your DATA dir');
 set(handles.work_dir,'string',folder_name);
+% populate the listbox, with these directories
 load_listBox(folder_name,handles);
+% Check if this directory has the data as output by icorrect
 checkdata(handles);
 
 % --- If Enable == 'on', executes on mouse press in 5 pixel border.
 % --- Otherwise, executes on mouse press in 5 pixel border or over work_dir.
 function work_dir_ButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to work_dir (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 
-% --- Executes on selection change in listbox1.
+% --- Executes when a event directory is selected in the first listbox
+% Reads the channels in the subdirectory, and loads them
 function listbox1_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
 dir_list = get(handles.listbox1,'String');
 path1= strcat(get(handles.work_dir,'string'),'/',dir_list(get(handles.listbox1,'value')));
 load_listBox2(path1{1},handles);
 set(handles.text5,'Visible','on');
 set(handles.listbox2,'Visible','on');
 %update_plots(handles);
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox1
-
 
 % --- Executes during object creation, after setting all properties.
 function listbox1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: listbox controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -125,7 +96,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
+% To populate the listbox with the list of events, present
+% in the work directory.
+% Assumption: directory names for events start with dir_
 function load_listBox(dir_path,handles)
 cd (dir_path)
 dir_struct = dir('dir_*');
@@ -139,6 +112,10 @@ cellsize = size(handles.file_names);
 set(handles.n_events,'String',cellsize(1,1)) 
 
 
+% To populate the second listbox with the list of channels
+% contained in the selected event directory
+% Assumption: channel directory names start with CN, this may only
+% be true for Canadian stations? I am not sure.
 function load_listBox2(dir_path,handles)
 cd (dir_path)
 dir_struct = dir('CN*');
@@ -151,6 +128,9 @@ set(handles.listbox2,'String',handles.file_names,'Value',1)
 cellsize = size(handles.file_names);
 set(handles.n_chn,'String',cellsize(1,1)) ;
 
+
+% To the paint the axes with the plots. 
+% Acceleration/Dispalcement/Velocity plot based on the radio button
 function update_plots(handles)
 sr = getappdata(handles.figure1, 'sr');
 sr = str2num(sr{1});
@@ -195,26 +175,27 @@ load_Q(handles);
 
 % --- Executes on button press in Debug.
 function Debug_Callback(hObject, eventdata, handles)
-% hObject    handle to Debug (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% Only used while developing this program, to access the 
+% handles at the command prompt.
 keyboard
 
 
-% --- Executes on selection change in listbox2.
+% --- Executes on selection of a channel. 
 function listbox2_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% Get the list of events, and the list of channels
 dir_list1 = get(handles.listbox1,'String');
 dir_list2 = get(handles.listbox2,'String');
+
 %path_data= strcat(get(handles.work_dir,'string'),'/',dir_list1(get(handles.listbox1,'value')),'/',dir_list2(get(handles.listbox2,'value')),'/result_');
 %waveform = load (path_data{1});
 %update_plots(waveform,handles);
+
 x = 0; i = 1;
+% Path to the result.txt for the selected channel
 path_data = fullfile(get(handles.work_dir,'string'),dir_list1(get(handles.listbox1,'value')),dir_list2(get(handles.listbox2,'value')),'result.txt');
 fid = fopen(path_data{1},'rt');
 R = {}; ev_date = {}; M = {}; depth = {}; sr = {};
+% Loop till the end of the header, and read some info
 while (~strcmpi(x,'END_HEADER'))
    x=fgetl(fid);
 	[ev_date{i},m1] = regexp(x,'Event\sdate:\s+(\d+\/\d+\/\d+)','tokens','match');
@@ -225,48 +206,50 @@ while (~strcmpi(x,'END_HEADER'))
 	i = i + 1;
 end
 
+% I don't like regex in matlab, this is how I would have done it in Perl
+% A better implementation may exist to select R, M, sr etc from the header.
 R  = R{find(~cellfun(@isempty,R))}{1};
 ev_date  = ev_date{find(~cellfun(@isempty,ev_date))}{1};
 depth  = depth{find(~cellfun(@isempty,depth))}{1};
 M  = M{find(~cellfun(@isempty,M))}{1};
 sr  = sr{find(~cellfun(@isempty,sr))}{1};
 
+% Update the panel with the information of this channel
 set(handles.text13,'String',path_data{1});
 set(handles.text14,'String',R);
 set(handles.text15,'String',M);
 set(handles.text16,'String',depth);
 set(handles.text17,'String',ev_date);
 
+% Set the application data with the sampling rate
 setappdata(handles.figure1, 'sr', sr);
 
 fgetl(fid); fgetl(fid);
+% Load the entire data into A, and reshape into 15 column format.
+% This is the fastest implementation. But in future, if the traces are super-long,
+% reading the file in parts would be a good idea, depending on the memory. 
 A = fscanf (fid, '%g');
 A = reshape(A,15,length(A)/15)';
 
+% Read the acceleration, velocity, displacement and the original waveform column.
 acc = A(:,15);  setappdata(handles.figure1, 'acc', acc);
 dis = A(:,13);  setappdata(handles.figure1, 'dis', dis);
 vel = A(:,14);  setappdata(handles.figure1, 'vel', vel);
 ori = A(:,2);   setappdata(handles.figure1, 'ori', ori);
 
+% Plot it, and show the last modification time.
 update_plots(handles);
 show_timestamp(handles);
 
+% Unhide the panels
 set(handles.text7,'Visible','on');
 set(handles.listbox3,'Visible','on');
 set(handles.uipanel4,'Visible','on');
 set(handles.uipanel5,'Visible','on');
 
 
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox2
-
-
 % --- Executes during object creation, after setting all properties.
 function listbox2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
 % Hint: listbox controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
@@ -276,9 +259,6 @@ end
 
 
 function edit1_Callback(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of edit1 as text
 %        str2double(get(hObject,'String')) returns contents of edit1 as a double
@@ -286,9 +266,6 @@ function edit1_Callback(hObject, eventdata, handles)
 
 % --- Executes during object creation, after setting all properties.
 function edit1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -297,8 +274,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% Check the state of catalogue file.
 function checkdata(handles)
-handles.X = 20;
 n_evts = get(handles.n_events,'String');
 cat_path = fullfile(get(handles.work_dir,'string'),'catalogue.mat');
 if (str2num(n_evts) == 0)
@@ -315,14 +292,15 @@ end
     
 
 
-% --- Executes on button press in gencat.
+% --- Executes on button to generate catalogue
 function gencat_Callback(hObject, eventdata, handles)
-% hObject    handle to gencat (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
 set(handles.edit1,'String','Please wait... This might take a few minutes ...');
 set(handles.gencat,'Visible','off');
 pause (1)
+% Assumption: directory names for events start with dir_
+% Assumption: channel directory names start with CN, this may only
+% be true for Canadian stations? I am not sure.
 evts = dir(fullfile(get(handles.work_dir,'string'),'dir_*'));
 for i = 1:length(evts)
 subdir = evts(i).name;
@@ -336,7 +314,6 @@ for j = 1:length(chns)
     data(i).chn(j).p3 = 0;
     data(i).chn(j).p4 = 0;
     data(i).chn(j).modtime = 0;
-    
 end
 end
 save (fullfile(get(handles.work_dir,'string'),'catalogue.mat'),'data');
@@ -345,7 +322,7 @@ pause (2)
 checkdata(handles);
 
 
-
+% If phase pics have been done for the channel, show it on the plot.
 function load_picks(handles)
 n_evts = get(handles.n_events,'String');
 cat_path = fullfile(get(handles.work_dir,'string'),'catalogue.mat');
@@ -361,6 +338,7 @@ if ((str2num(n_evts) > 0) && exist(cat_path, 'file'))
     vline ([p1 p2 p3 p4]);
 end
 
+% If quality has been assigned to for the channel, select it on the listbox.
 function load_Q(handles)
 n_evts = get(handles.n_events,'String');
 cat_path = fullfile(get(handles.work_dir,'string'),'catalogue.mat');
@@ -488,22 +466,16 @@ if nargout
 end
 
 
-% --- Executes on button press in pushbutton4.
+% --- Executes on save button press
 function pushbutton4_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 cat = getappdata(handles.figure1, 'cat');
 data = cat.data;
 save (fullfile(get(handles.work_dir,'string'),'catalogue.mat'),'data');
 set(handles.edit1,'String','Saved!');
 
 
-% --- Executes on button press in pushbutton5.
+% --- Executes to pick the phases with mouse.
 function pushbutton5_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 p = ginput(4);
 cat = getappdata(handles.figure1, 'cat');
 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p1 = p(1);
@@ -515,11 +487,8 @@ setappdata(handles.figure1, 'cat', cat);
 load_picks(handles);
 
 
-% --- Executes on selection change in listbox3.
+% --- Executes when the quality of the channel is changed
 function listbox3_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 cat = getappdata(handles.figure1, 'cat');
 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
@@ -527,9 +496,6 @@ setappdata(handles.figure1, 'cat', cat);
 
 % --- Executes during object creation, after setting all properties.
 function listbox3_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
 % Hint: listbox controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
@@ -540,50 +506,33 @@ end
 
 % --- Executes on button press in radiobutton1.
 function radiobutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to radiobutton1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of radiobutton1
 
 
 % --- Executes on button press in radiobutton2.
 function radiobutton2_Callback(hObject, eventdata, handles)
-% hObject    handle to radiobutton2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
 % Hint: get(hObject,'Value') returns toggle state of radiobutton2
 
 
 % --- Executes on button press in radiobutton3.
 function radiobutton3_Callback(hObject, eventdata, handles)
-% hObject    handle to radiobutton3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of radiobutton3
 
 
 % --- Executes on button press in radiobutton4.
 function radiobutton4_Callback(hObject, eventdata, handles)
-% hObject    handle to radiobutton4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
 % Hint: get(hObject,'Value') returns toggle state of radiobutton4
 
 
-% --- Executes when selected object is changed in uipanel4.
+% --- Executes when plot option radio button is changed.
 function uipanel4_SelectionChangeFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in uipanel4 
-% eventdata  structure with the following fields (see UIBUTTONGROUP)
-%	EventName: string 'SelectionChanged' (read only)
-%	OldValue: handle of the previously selected object or empty if none was selected
-%	NewValue: handle of the currently selected object
-% handles    structure with handles and user data (see GUIDATA)
+% Radio button has changed, just update the plots
 update_plots(handles)
 
+% Read the list modification date and time for the current channel
+% Marks the change of either picks or quality.
 function show_timestamp(handles)
 n_evts = get(handles.n_events,'String');
 cat_path = fullfile(get(handles.work_dir,'string'),'catalogue.mat');
