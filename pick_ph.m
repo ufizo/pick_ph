@@ -22,7 +22,7 @@ function varargout = pick_ph(varargin)
 
 % Edit the above text to modify the response to help pick_ph
 
-% Last Modified by GUIDE v2.5 28-May-2013 14:27:38
+% Last Modified by GUIDE v2.5 28-May-2013 23:00:37
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -51,7 +51,7 @@ function pick_ph_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to pick_ph (see VARARGIN)
-folder_name = '/home/asingh336/work';
+folder_name = '/home/ufizo/work';
 %folder_name = '/home/';
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
@@ -151,9 +151,27 @@ set(handles.listbox2,'String',handles.file_names,'Value',1)
 cellsize = size(handles.file_names);
 set(handles.n_chn,'String',cellsize(1,1)) ;
 
-function update_plots(waveform,handles)
-sr = waveform(1);
-waveform = waveform(2:end);
+function update_plots(handles)
+sr = getappdata(handles.figure1, 'sr');
+sr = str2num(sr{1});
+
+switch get(handles.uipanel4,'SelectedObject')
+    case handles.radiobutton8
+        %Acceleration
+        waveform = getappdata(handles.figure1, 'acc'); 
+    case handles.radiobutton7
+        %Velocity
+        waveform = getappdata(handles.figure1, 'vel'); 
+    case handles.radiobutton6
+        %Displacement
+        waveform = getappdata(handles.figure1, 'dis'); 
+    case handles.radiobutton5
+        %Original
+        waveform = getappdata(handles.figure1, 'ori'); 
+    otherwise
+        waveform = getappdata(handles.figure1, 'acc'); 
+end
+
 t = 0:1/sr:(length(waveform)-1)/sr;
 char=zeros(length(waveform),1);
 num=1:length(waveform)-1;
@@ -190,11 +208,55 @@ function listbox2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 dir_list1 = get(handles.listbox1,'String');
 dir_list2 = get(handles.listbox2,'String');
-path_data= strcat(get(handles.work_dir,'string'),'/',dir_list1(get(handles.listbox1,'value')),'/',dir_list2(get(handles.listbox2,'value')),'/result_');
-waveform = load (path_data{1});
-update_plots(waveform,handles);
+%path_data= strcat(get(handles.work_dir,'string'),'/',dir_list1(get(handles.listbox1,'value')),'/',dir_list2(get(handles.listbox2,'value')),'/result_');
+%waveform = load (path_data{1});
+%update_plots(waveform,handles);
+x = 0; i = 1;
+path_data = fullfile(get(handles.work_dir,'string'),dir_list1(get(handles.listbox1,'value')),dir_list2(get(handles.listbox2,'value')),'result.txt');
+fid = fopen(path_data{1},'rt');
+R = {}; ev_date = {}; M = {}; depth = {}; sr = {};
+while (~strcmpi(x,'END_HEADER'))
+   x=fgetl(fid);
+	[ev_date{i},m1] = regexp(x,'Event\sdate:\s+(\d+\/\d+\/\d+)','tokens','match');
+	[depth{i},m2] = regexp(x,'Hypocentral\sdepth\(km\):\s+(\d+\.\d+)','tokens','match');
+	[M{i},m3] = regexp(x,'Magnitude:\s+(\d+\.\d+)','tokens','match');
+	[R{i},m4] = regexp(x,'Distance\sfrom\s\w+\s+:\s+(\d+\.\d+\skm)','tokens','match');
+	[sr{i},m5] = regexp(x,'Sampling\srate:\s+(\d+\.\d+)','tokens','match');
+	i = i + 1;
+end
+
+R  = R{find(~cellfun(@isempty,R))}{1};
+ev_date  = ev_date{find(~cellfun(@isempty,ev_date))}{1};
+depth  = depth{find(~cellfun(@isempty,depth))}{1};
+M  = M{find(~cellfun(@isempty,M))}{1};
+sr  = sr{find(~cellfun(@isempty,sr))}{1};
+
+set(handles.text13,'String',path_data{1});
+set(handles.text14,'String',R);
+set(handles.text15,'String',M);
+set(handles.text16,'String',depth);
+set(handles.text17,'String',ev_date);
+
+setappdata(handles.figure1, 'sr', sr);
+
+fgetl(fid); fgetl(fid);
+A = fscanf (fid, '%g');
+A = reshape(A,15,length(A)/15)';
+
+acc = A(:,15);  setappdata(handles.figure1, 'acc', acc);
+dis = A(:,13);  setappdata(handles.figure1, 'dis', dis);
+vel = A(:,14);  setappdata(handles.figure1, 'vel', vel);
+ori = A(:,2);   setappdata(handles.figure1, 'ori', ori);
+
+update_plots(handles);
+show_timestamp(handles);
+
 set(handles.text7,'Visible','on');
 set(handles.listbox3,'Visible','on');
+set(handles.uipanel4,'Visible','on');
+set(handles.uipanel5,'Visible','on');
+
+
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox2 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox2
 
@@ -268,13 +330,13 @@ chns = dir(fullfile(get(handles.work_dir,'string'),subdir, 'CN*'));
 for j = 1:length(chns)
     data(i).chn(j).ev_name = subdir;
     data(i).chn(j).ch_name = chns(j).name;
-    data(i).chn(j).R = 0;
-    data(i).chn(j).M = 0;
     data(i).chn(j).Q = 0;
     data(i).chn(j).p1 = 0;
     data(i).chn(j).p2 = 0;
     data(i).chn(j).p3 = 0;
     data(i).chn(j).p4 = 0;
+    data(i).chn(j).modtime = 0;
+    
 end
 end
 save (fullfile(get(handles.work_dir,'string'),'catalogue.mat'),'data');
@@ -398,9 +460,7 @@ else
         label=in2;
     end
 
-    
-    
-    
+        
     g=ishold(gca);
     hold on
 
@@ -450,6 +510,7 @@ cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p1 = 
 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p2 = p(2);
 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p3 = p(3);
 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4 = p(4);
+cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
 setappdata(handles.figure1, 'cat', cat);
 load_picks(handles);
 
@@ -461,6 +522,7 @@ function listbox3_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 cat = getappdata(handles.figure1, 'cat');
 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
 setappdata(handles.figure1, 'cat', cat);
 
 % --- Executes during object creation, after setting all properties.
@@ -473,4 +535,69 @@ function listbox3_CreateFcn(hObject, eventdata, handles)
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in radiobutton1.
+function radiobutton1_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton1
+
+
+% --- Executes on button press in radiobutton2.
+function radiobutton2_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton2
+
+
+% --- Executes on button press in radiobutton3.
+function radiobutton3_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton3
+
+
+% --- Executes on button press in radiobutton4.
+function radiobutton4_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton4
+
+
+% --- Executes when selected object is changed in uipanel4.
+function uipanel4_SelectionChangeFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in uipanel4 
+% eventdata  structure with the following fields (see UIBUTTONGROUP)
+%	EventName: string 'SelectionChanged' (read only)
+%	OldValue: handle of the previously selected object or empty if none was selected
+%	NewValue: handle of the currently selected object
+% handles    structure with handles and user data (see GUIDATA)
+update_plots(handles)
+
+function show_timestamp(handles)
+n_evts = get(handles.n_events,'String');
+cat_path = fullfile(get(handles.work_dir,'string'),'catalogue.mat');
+% Read from the catalogue if it is loaded
+if ((str2num(n_evts) > 0) && exist(cat_path, 'file'))             
+    cat = getappdata(handles.figure1, 'cat');
+    modtime = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime;
+    % modtime = 0, means quality has not been assigned.
+    if (modtime ~= 0)        
+        set(handles.text19,'String',modtime);
+        set(handles.text18,'Visible','on');
+        set(handles.text19,'Visible','on');
+    else
+        set(handles.text18,'Visible','off');
+        set(handles.text19,'Visible','off');
+    end
 end
