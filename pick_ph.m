@@ -11,7 +11,7 @@ function varargout = pick_ph(varargin)
 % Arpit Singh
 % me@arpitsingh.in
 %
-% Last Modified by GUIDE v2.5 28-May-2013 23:00:37
+% Last Modified by GUIDE v2.5 29-May-2013 17:01:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -37,9 +37,10 @@ end
 function pick_ph_OpeningFcn(hObject, eventdata, handles, varargin)
 % Default work directory when program is loaded
 %folder_name = '/home/ufizo/work';
-folder_name = '/home/';
+folder_name = '/home/asingh336/work';
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
+setappdata(handles.figure1, 'x', 0);    %Un Xoomed to start with
 
 %Check if listBox is empty, and check for catalogue
 checkdata(handles);
@@ -152,26 +153,52 @@ switch get(handles.uipanel4,'SelectedObject')
         waveform = getappdata(handles.figure1, 'acc'); 
 end
 
-t = 0:1/sr:(length(waveform)-1)/sr;
-char=zeros(length(waveform),1);
-num=1:length(waveform)-1;
-char(num,1)=waveform(num).^2+3*(waveform(num+1)-waveform(num)).^2*sr.^2;
-sqr_sum=cumsum(waveform.*waveform);
-abs_sum=cumsum(abs(waveform));
-sqr_sum=sqr_sum/sqr_sum(length(waveform));
-abs_sum=abs_sum/abs_sum(length(waveform));
+    h1 = handles.axes1;
+    h2 = handles.axes4;
+    h3 = handles.axes5;
+    
+    
+x = getappdata(handles.figure1, 'x');
+if (~x)
+    t = 0:1/sr:(length(waveform)-1)/sr;
+    char=zeros(length(waveform),1);
+    num=1:length(waveform)-1;
+    char(num,1)=waveform(num).^2+3*(waveform(num+1)-waveform(num)).^2*sr.^2;
+    sqr_sum=cumsum(waveform.*waveform);
+    abs_sum=cumsum(abs(waveform));
+    sqr_sum=sqr_sum/sqr_sum(length(waveform));
+    abs_sum=abs_sum/abs_sum(length(waveform));
+    plot(h1,t,waveform);
+    %vline ([150 200]);
+    plot (h3,t,char);
+    plot (h2,t,abs_sum);
+    plot (h2,t,sqr_sum,'Color','r');
+    load_picks(handles);
+    load_Q(handles);
 
-h1 = handles.axes1;
-h2 = handles.axes4;
-h3 = handles.axes5;
-axes(h1);
-plot (h1,t,waveform);
-%vline ([150 200]);
-plot (h3,t,char);
-plot (h2,t,abs_sum);
-plot (h2,t,sqr_sum,'Color','r');
-load_picks(handles);
-load_Q(handles);
+elseif (x)
+    xoo = getappdata(handles.figure1, 'xoo');
+     t =xoo(1):1/sr:xoo(2);
+     waveform = waveform(round(xoo(1)*sr):round(xoo(1)*sr) + length(t) - 1);
+     axes(h1);
+    plot(h1,t,waveform);
+        char=zeros(length(waveform),1);
+    num=1:length(waveform)-1;
+    char(num,1)=waveform(num).^2+3*(waveform(num+1)-waveform(num)).^2*sr.^2;
+    sqr_sum=cumsum(waveform.*waveform);
+    abs_sum=cumsum(abs(waveform));
+    sqr_sum=sqr_sum/sqr_sum(length(waveform));
+    abs_sum=abs_sum/abs_sum(length(waveform));
+    plot (h3,t,char);
+    plot (h2,t,abs_sum);
+    plot (h2,t,sqr_sum,'Color','r');
+    %load_picks(handles);       % Plotting the picks can screwup the zoomed
+    %axes
+    load_Q(handles);
+end
+
+
+
 
 % --- Executes on button press in Debug.
 function Debug_Callback(hObject, eventdata, handles)
@@ -192,8 +219,11 @@ dir_list2 = get(handles.listbox2,'String');
 
 x = 0; i = 1;
 % Path to the result.txt for the selected channel
-path_data = fullfile(get(handles.work_dir,'string'),dir_list1(get(handles.listbox1,'value')),dir_list2(get(handles.listbox2,'value')),'result.txt');
-fid = fopen(path_data{1},'rt');
+ev = dir_list1(get(handles.listbox1,'value'));
+chn = dir_list2(get(handles.listbox2,'value'));
+ev = ev{1}; chn = chn{1};
+path_data = fullfile(get(handles.work_dir,'string'),ev,chn,'result.txt');
+fid = fopen(path_data,'rt');
 R = {}; ev_date = {}; M = {}; depth = {}; sr = {};
 % Loop till the end of the header, and read some info
 while (~strcmpi(x,'END_HEADER'))
@@ -215,11 +245,13 @@ M  = M{find(~cellfun(@isempty,M))}{1};
 sr  = sr{find(~cellfun(@isempty,sr))}{1};
 
 % Update the panel with the information of this channel
-set(handles.text13,'String',path_data{1});
+set(handles.text13,'String',path_data);
 set(handles.text14,'String',R);
 set(handles.text15,'String',M);
 set(handles.text16,'String',depth);
 set(handles.text17,'String',ev_date);
+set(handles.text21,'String',get(handles.listbox1,'value'));
+set(handles.text22,'String',get(handles.listbox2,'value'));
 
 % Set the application data with the sampling rate
 setappdata(handles.figure1, 'sr', sr);
@@ -232,10 +264,11 @@ A = fscanf (fid, '%g');
 A = reshape(A,15,length(A)/15)';
 
 % Read the acceleration, velocity, displacement and the original waveform column.
+ori = A(:,2);   setappdata(handles.figure1, 'ori', ori);
 acc = A(:,15);  setappdata(handles.figure1, 'acc', acc);
 dis = A(:,13);  setappdata(handles.figure1, 'dis', dis);
 vel = A(:,14);  setappdata(handles.figure1, 'vel', vel);
-ori = A(:,2);   setappdata(handles.figure1, 'ori', ori);
+
 
 % Plot it, and show the last modification time.
 update_plots(handles);
@@ -300,7 +333,7 @@ set(handles.gencat,'Visible','off');
 pause (1)
 % Assumption: directory names for events start with dir_
 % Assumption: channel directory names start with CN, this may only
-% be true for Canadian stations? I am not sure.
+% be true for Canadian stations? I am not sure./home
 evts = dir(fullfile(get(handles.work_dir,'string'),'dir_*'));
 for i = 1:length(evts)
 subdir = evts(i).name;
@@ -460,7 +493,6 @@ else
     end
     set(h,'tag','vline','handlevisibility','off')
 end % else
-
 if nargout
     hhh=h;
 end
@@ -478,10 +510,10 @@ set(handles.edit1,'String','Saved!');
 function pushbutton5_Callback(hObject, eventdata, handles)
 p = ginput(4);
 cat = getappdata(handles.figure1, 'cat');
-cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p1 = p(1);
-cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p2 = p(2);
-cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p3 = p(3);
-cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4 = p(4);
+cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p1 = p(1,1);
+cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p2 = p(2,1);
+cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p3 = p(3,1);
+cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4 = p(4,1);
 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
 setappdata(handles.figure1, 'cat', cat);
 load_picks(handles);
@@ -550,3 +582,90 @@ if ((str2num(n_evts) > 0) && exist(cat_path, 'file'))
         set(handles.text19,'Visible','off');
     end
 end
+
+
+% --- Executes on key press with focus on figure1 and none of its controls.
+function figure1_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+hotkeys(hObject, eventdata, handles)
+
+
+
+function hotkeys(hObject, eventdata, handles)
+x = get(handles.figure1,'currentcharacter');
+if x == 'h'
+    set(handles.edit1,'String','Hello!');
+end
+if x == '.'
+    j = get(handles.listbox2,'value');
+    if (j < str2num(get(handles.n_chn,'String')))
+        set(handles.listbox2,'value',j+1);
+        listbox2_Callback(hObject, eventdata, handles);
+        cat = getappdata(handles.figure1, 'cat');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
+        setappdata(handles.figure1, 'cat', cat);
+    end
+end
+if x == ','
+    j = get(handles.listbox2,'value');
+    if (j > 1)
+        set(handles.listbox2,'value',j-1);
+        listbox2_Callback(hObject, eventdata, handles);
+        cat = getappdata(handles.figure1, 'cat');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
+        setappdata(handles.figure1, 'cat', cat);
+    end
+end
+q = {'1','2','3','4','5','6','7'};
+if (ismember(x,q))
+    if (str2num(x) >=1 && str2num(x) <= 7)
+        set(handles.listbox3,'value',str2num(x));
+        cat = getappdata(handles.figure1, 'cat');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
+        setappdata(handles.figure1, 'cat', cat);
+    end
+end
+if x == 'x'
+    xoo = ginput(2);
+    xoo = xoo(:,1);
+    setappdata(handles.figure1, 'x', 1);
+    setappdata(handles.figure1, 'xoo', xoo);
+    update_plots(handles);
+end
+if x == 'o'
+    setappdata(handles.figure1, 'x', 0);
+    update_plots(handles);
+end
+if x == 'p'
+    pushbutton5_Callback(hObject, eventdata, handles);
+end
+
+
+% --- Executes on key press with focus on listbox3 and none of its controls.
+function listbox3_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to listbox3 (see GCBO)
+% eventdata  structure with the following fields (see UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+hotkeys(hObject, eventdata, handles)
+
+
+% --- Executes on key press with focus on listbox2 and none of its controls.
+function listbox2_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to listbox2 (see GCBO)
+% eventdata  structure with the following fields (see UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+hotkeys(hObject, eventdata, handles)
