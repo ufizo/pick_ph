@@ -261,6 +261,7 @@ fgetl(fid); fgetl(fid);
 % This is the fastest implementation. But in future, if the traces are super-long,
 % reading the file in parts would be a good idea, depending on the memory. 
 A = fscanf (fid, '%g');
+fclose(fid);
 A = reshape(A,15,length(A)/15)';
 
 % Read the acceleration, velocity, displacement and the original waveform column.
@@ -426,7 +427,7 @@ if length(x)>1  % vector input
     for I=1:length(x)
         switch nargin
         case 1
-            linetype='r:';
+            linetype='g';
             label='';
         case 2
             if ~iscell(in1)
@@ -644,7 +645,7 @@ if x == 'o'
     setappdata(handles.figure1, 'x', 0);
     update_plots(handles);
 end
-if x == 'p'
+if x == '9'
     pushbutton5_Callback(hObject, eventdata, handles);
 end
 
