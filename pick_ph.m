@@ -11,7 +11,7 @@ function varargout = pick_ph(varargin)
 % Arpit Singh
 % me@arpitsingh.in
 %
-% Last Modified by GUIDE v2.5 29-May-2013 17:01:06
+% Last Modified by GUIDE v2.5 30-May-2013 22:48:54
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -153,6 +153,27 @@ switch get(handles.uipanel4,'SelectedObject')
         waveform = getappdata(handles.figure1, 'acc'); 
 end
 
+
+switch get(handles.uipanel6,'SelectedObject')
+    case handles.radiobutton9
+        %No Filter
+         waveform;
+    case handles.radiobutton10
+        %2-4
+        [b a] = butter(4,[4/sr 8/sr]);	
+        waveform = filtfilt(b,a,waveform); 
+    case handles.radiobutton11
+        %4-8
+        [b a] = butter(4,[8/sr 16/sr]);	
+        waveform = filtfilt(b,a,waveform);  
+    case handles.radiobutton12
+        %8-16
+        [b a] = butter(4,[16/sr 32/sr]);	
+        waveform = filtfilt(b,a,waveform); 
+    otherwise
+        waveform; 
+end
+
     h1 = handles.axes1;
     h2 = handles.axes4;
     h3 = handles.axes5;
@@ -280,6 +301,7 @@ set(handles.text7,'Visible','on');
 set(handles.listbox3,'Visible','on');
 set(handles.uipanel4,'Visible','on');
 set(handles.uipanel5,'Visible','on');
+set(handles.uipanel6,'Visible','on');
 
 
 % --- Executes during object creation, after setting all properties.
@@ -701,3 +723,8 @@ function listbox2_KeyPressFcn(hObject, eventdata, handles)
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
 hotkeys(hObject, eventdata, handles)
+
+
+% --- Executes when selected object is changed in uipanel6.
+function uipanel6_SelectionChangeFcn(hObject, eventdata, handles)
+update_plots(handles)
