@@ -11,7 +11,7 @@ function varargout = pick_ph(varargin)
 % Arpit Singh
 % me@arpitsingh.in
 %
-% Last Modified by GUIDE v2.5 30-May-2013 22:48:54
+% Last Modified by GUIDE v2.5 30-May-2013 23:02:47
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -41,6 +41,7 @@ folder_name = '/home/ufizo/work';
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
 setappdata(handles.figure1, 'x', 0);    %Un Xoomed to start with
+setappdata(handles.figure1, 'auto', 0); %AutoPick disabled by default because it needs a lot of processing power.
 
 %Check if listBox is empty, and check for catalogue
 checkdata(handles);
@@ -218,6 +219,13 @@ elseif (x)
     load_Q(handles);
 end
 
+auto = getappdata(handles.figure1, 'auto');
+if (auto)
+    [x1,x2] = auto_pick (handles,sr,waveform);
+    axes(h1);
+    vline ([x1-10 x1 x2 x2+60],'r');
+    setappdata(handles.figure1, 'auto', 0); % AutoPick disable
+end
 
 
 
@@ -728,3 +736,79 @@ hotkeys(hObject, eventdata, handles)
 % --- Executes when selected object is changed in uipanel6.
 function uipanel6_SelectionChangeFcn(hObject, eventdata, handles)
 update_plots(handles)
+
+
+% --- Executes on button press in pushbutton6.
+function pushbutton6_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+setappdata(handles.figure1, 'auto', 1);
+update_plots(handles);
+
+
+function [x1,x2] = auto_pick (handles,sr,wave)
+% BandPass
+[b a] = butter(4,[3/sr 15/sr]);	% 3Hz to 20Hz for P phase picking
+waveBP = filtfilt(b,a,wave);
+
+% Narrow Detection interval
+win = 40;
+varY = wave.^2;                 % Bad assumption, that S has the max amp
+[a1 b1] = max(varY);
+detect = [1 round(b1*0.9)];
+
+win = 500;
+waveD = waveBP(detect(1):detect(2));
+kurtY1 = myKurtosis(waveD,win);
+[a2 b2] = max(kurtY1);
+detect = [b2-100 b2+60];
+
+clear waveD;
+win = 40;
+waveD = wave(detect(1):detect(2));
+kurtY = myKurtosis(waveD,win);
+[a2 b2] = max(kurtY);
+
+threshH = a2;
+while (kurtY(b2)>1.5)
+	b2 = b2-1;
+end
+
+b2 = b2 + detect(1) - 1;
+x1 = b2/sr;
+
+% Highcut
+[b a] = butter(4,.2);	
+waveHC = filtfilt(b,a,wave);
+
+% S wave
+detectS = [b2 round(b1*1.1)];
+waveDS = waveHC(detectS(1):detectS(2));
+aicD = aic(waveDS); aicD(1) = 0;
+[a3 b3] = min(aicD);
+b3 = b3 + detectS(1) - 1;
+detectS = [b3-70 b3+10];
+waveDS = wave(detectS(1):detectS(2));
+aicD = aic(waveDS); aicD(1) = 0;
+[a3 b3] = min(aicD);
+b3 = b3 + detectS(1) - 1;
+x2 = b3/sr;
+
+function [ kurt ] = myKurtosis( x,M )
+% Kurtosis calculated over the entire signal length
+% x is the signal, M is the window length
+% Bottle Neck! This is slow!
+N = length(x);
+for k = M:N
+	clear xw;
+	xw = x(k-M+1:k);
+	kurt(k) = kurtosis(xw) -3;
+end
+
+function [ val ] = aic(wave)
+% Computes AIC funciton without the AR coefficients.
+	N = length(wave);
+    for k = 1:N
+    val(k) = k*log(var(wave(1:k))) + (N-k-1)*log(var(wave(k+1:N)));
+    end
