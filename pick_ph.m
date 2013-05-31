@@ -36,8 +36,8 @@ end
 % --- Executes just before pick_ph is made visible.
 function pick_ph_OpeningFcn(hObject, eventdata, handles, varargin)
 % Default work directory when program is loaded
-folder_name = '/home/ufizo/work';
-%folder_name = '/home/asingh336/work';
+%folder_name = '/home/ufizo/work';
+folder_name = '/home/asingh336/work';
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
 setappdata(handles.figure1, 'x', 0);    %Un Xoomed to start with
@@ -223,6 +223,8 @@ auto = getappdata(handles.figure1, 'auto');
 if (auto)
     [x1,x2] = auto_pick (handles,sr,waveform);
     axes(h1);
+    vline ([x1-10 x1 x2 x2+60],'r');
+    axes(h3);
     vline ([x1-10 x1 x2 x2+60],'r');
     setappdata(handles.figure1, 'auto', 0); % AutoPick disable
 end
@@ -654,7 +656,11 @@ if x == '.'
                 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p4 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4;  
                 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0);                 
                 setappdata(handles.figure1, 'cat', cat);
-                set(handles.listbox2,'value',j+3);
+                if (j+2 < str2num(get(handles.n_chn,'String')))
+                    set(handles.listbox2,'value',j+3);
+                else
+                    set(handles.listbox2,'value',j+2);
+                end
                 listbox2_Callback(hObject, eventdata, handles);
             else
                 cat = getappdata(handles.figure1, 'cat');
