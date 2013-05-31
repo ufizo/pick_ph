@@ -36,8 +36,8 @@ end
 % --- Executes just before pick_ph is made visible.
 function pick_ph_OpeningFcn(hObject, eventdata, handles, varargin)
 % Default work directory when program is loaded
-%folder_name = '/home/ufizo/work';
-folder_name = '/home/asingh336/work';
+folder_name = '/home/ufizo/work';
+%folder_name = '/home/asingh336/work';
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
 setappdata(handles.figure1, 'x', 0);    %Un Xoomed to start with
@@ -605,12 +605,43 @@ end
 if x == '.'
     j = get(handles.listbox2,'value');
     if (j < str2num(get(handles.n_chn,'String')))
-        set(handles.listbox2,'value',j+1);
-        listbox2_Callback(hObject, eventdata, handles);
-        cat = getappdata(handles.figure1, 'cat');
-        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
-        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
-        setappdata(handles.figure1, 'cat', cat);
+        list = get(handles.listbox2,'String');
+        [a b] = regexp(list{get(handles.listbox2,'value')},'(\S*?\.\.\S\S)E','match');
+        if (b)
+            [a b] = regexp(list{get(handles.listbox2,'value')},'(\S*?\.\.\S\S)\S','tokens','match');
+            if strcmp(strcat(a{1}{1},'N'),list{get(handles.listbox2,'value')+1}) && strcmp(strcat(a{1}{1},'Z'),list{get(handles.listbox2,'value')+2}) 
+                cat = getappdata(handles.figure1, 'cat');
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).Q =  get(handles.listbox3,'value');
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).Q =  get(handles.listbox3,'value');
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p1 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p1;
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p2 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p2;
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p3 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p3;
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p4 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4;              
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p1 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p1;
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p2 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p2;
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p3 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p3;
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p4 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4;  
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0);                 
+                setappdata(handles.figure1, 'cat', cat);
+                set(handles.listbox2,'value',j+3);
+                listbox2_Callback(hObject, eventdata, handles);
+            else
+                cat = getappdata(handles.figure1, 'cat');
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+                cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
+                setappdata(handles.figure1, 'cat', cat);                
+                set(handles.listbox2,'value',j+1);
+                listbox2_Callback(hObject, eventdata, handles);
+            end
+        else
+            cat = getappdata(handles.figure1, 'cat');
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
+            setappdata(handles.figure1, 'cat', cat);            
+            set(handles.listbox2,'value',j+1);
+            listbox2_Callback(hObject, eventdata, handles);
+        end
     end
 end
 if x == ','
