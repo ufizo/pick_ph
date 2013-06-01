@@ -11,7 +11,7 @@ function varargout = pick_ph(varargin)
 % Arpit Singh
 % me@arpitsingh.in
 %
-% Last Modified by GUIDE v2.5 30-May-2013 23:02:47
+% Last Modified by GUIDE v2.5 31-May-2013 22:33:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -36,8 +36,8 @@ end
 % --- Executes just before pick_ph is made visible.
 function pick_ph_OpeningFcn(hObject, eventdata, handles, varargin)
 % Default work directory when program is loaded
-%folder_name = '/home/ufizo/work';
-folder_name = '/home/asingh336/work';
+folder_name = '/home/ufizo/work';
+%folder_name = '/home/asingh336/work';
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
 setappdata(handles.figure1, 'x', 0);    %Un Xoomed to start with
@@ -161,7 +161,7 @@ switch get(handles.uipanel6,'SelectedObject')
          waveform;
     case handles.radiobutton10
         %2-4
-        [b a] = butter(4,[4/sr 8/sr]);	
+        [b a] = butter(4,[4/sr 10/sr]);	
         waveform = filtfilt(b,a,waveform); 
     case handles.radiobutton11
         %4-8
@@ -171,6 +171,13 @@ switch get(handles.uipanel6,'SelectedObject')
         %8-16
         [b a] = butter(4,[16/sr 32/sr]);	
         waveform = filtfilt(b,a,waveform); 
+    case handles.radiobutton14
+        %custom
+        f1 = str2num(get(handles.edit2,'String'));
+        f2 = str2num(get(handles.edit4,'String'));
+        [b a] = butter(4,[f1*2/sr f2*2/sr]);	
+        waveform = filtfilt(b,a,waveform); 
+
     otherwise
         waveform; 
 end
@@ -818,3 +825,107 @@ function [ val ] = aic(wave)
     for k = 1:N
     val(k) = k*log(var(wave(1:k))) + (N-k-1)*log(var(wave(k+1:N)));
     end
+
+
+
+function edit2_Callback(hObject, eventdata, handles)
+% hObject    handle to edit2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+check_custom_filter(handles)
+update_plots(handles);
+% Hints: get(hObject,'String') returns contents of edit2 as text
+%        str2double(get(hObject,'String')) returns contents of edit2 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton7.
+function pushbutton7_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton7 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+f1 = str2num(get(handles.edit2,'String'));
+set(handles.edit2,'String',f1+.5);
+check_custom_filter(handles)
+update_plots(handles);
+
+
+% --- Executes on button press in pushbutton8.
+function pushbutton8_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+f1 = str2num(get(handles.edit2,'String'));
+set(handles.edit2,'String',f1-.5);
+check_custom_filter(handles)
+update_plots(handles);
+
+
+function edit4_Callback(hObject, eventdata, handles)
+% hObject    handle to edit4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+check_custom_filter(handles)
+update_plots(handles);
+% Hints: get(hObject,'String') returns contents of edit4 as text
+%        str2double(get(hObject,'String')) returns contents of edit4 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit4_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton9.
+function pushbutton9_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton9 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+f1 = str2num(get(handles.edit4,'String'));
+set(handles.edit4,'String',f1+.5);
+check_custom_filter(handles)
+update_plots(handles);
+
+% --- Executes on button press in pushbutton10.
+function pushbutton10_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+f1 = str2num(get(handles.edit4,'String'));
+set(handles.edit4,'String',f1-.5);
+check_custom_filter(handles)
+update_plots(handles);
+
+function check_custom_filter(handles)
+f1 = str2num(get(handles.edit2,'String'));
+f2 = str2num(get(handles.edit4,'String'));
+sr = getappdata(handles.figure1, 'sr');
+sr = str2num(sr{1});
+if ((f1 > 0 && f2 > 0) && (f1 < f2))
+    if (f2 >= sr/2)
+        set(handles.edit4,'String',sr/2 - .1);
+    end
+else
+    set(handles.edit2,'String',1);
+    set(handles.edit4,'String',5);
+end
