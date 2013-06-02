@@ -11,7 +11,7 @@ function varargout = pick_ph(varargin)
 % Arpit Singh
 % me@arpitsingh.in
 %
-% Last Modified by GUIDE v2.5 31-May-2013 22:33:56
+% Last Modified by GUIDE v2.5 02-Jun-2013 19:59:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -132,35 +132,46 @@ set(handles.n_chn,'String',cellsize(1,1)) ;
 
 
 % To the paint the axes with the plots. 
-% Acceleration/Dispalcement/Velocity plot based on the radio button
+
 function update_plots(handles)
+% Get the sampling rate: sr
 sr = getappdata(handles.figure1, 'sr');
 sr = str2num(sr{1});
 
-switch get(handles.uipanel4,'SelectedObject')
-    case handles.radiobutton8
-        %Acceleration
+% Check the selected option for PLOT1
+switch feval(@(x) x{1}{x{2}},get(handles.popupmenu1,{'String','Value'}))
+        case 'Acceleration'
         waveform = getappdata(handles.figure1, 'acc'); 
-    case handles.radiobutton7
-        %Velocity
+        case 'Velocity'
         waveform = getappdata(handles.figure1, 'vel'); 
-    case handles.radiobutton6
-        %Displacement
+        case 'Displacement'
         waveform = getappdata(handles.figure1, 'dis'); 
-    case handles.radiobutton5
-        %Original
+        case 'Original'
         waveform = getappdata(handles.figure1, 'ori'); 
-    otherwise
-        waveform = getappdata(handles.figure1, 'acc'); 
+        case 'Deglitched'
+        waveform = getappdata(handles.figure1, 'degli'); 
+        case 'Detrended'
+        waveform = getappdata(handles.figure1, 'detre');
+        case 'Windowed'
+        waveform = getappdata(handles.figure1, 'windd');
+        case 'FFT->Re'
+        waveform = getappdata(handles.figure1, 'fftre');
+        case 'FFT->Im'
+        waveform = getappdata(handles.figure1, 'fftim');
+        case 'FFT->Abs'
+        waveform = getappdata(handles.figure1, 'fftabs');
+        case 'Filtered'
+        waveform = getappdata(handles.figure1, 'filtdd');
 end
 
-
+% Check for the selected filter,and apply it. Only for plot1
+% Butterworth bandpass, 4th order
 switch get(handles.uipanel6,'SelectedObject')
     case handles.radiobutton9
         %No Filter
          waveform;
     case handles.radiobutton10
-        %2-4
+        %2-5
         [b a] = butter(4,[4/sr 10/sr]);	
         waveform = filtfilt(b,a,waveform); 
     case handles.radiobutton11
@@ -177,63 +188,73 @@ switch get(handles.uipanel6,'SelectedObject')
         f2 = str2num(get(handles.edit4,'String'));
         [b a] = butter(4,[f1*2/sr f2*2/sr]);	
         waveform = filtfilt(b,a,waveform); 
-
     otherwise
+        % No filter
         waveform; 
 end
 
+% Check the selected option for PLOT2
+switch feval(@(x) x{1}{x{2}},get(handles.popupmenu2,{'String','Value'}))
+    case 'Original'
+        y2 = getappdata(handles.figure1, 'ori'); 
+    case 'Absolute Sum'
+        y2 = cumsum(abs(waveform));
+    case 'Square Sum'
+        y2 = cumsum(waveform.*waveform);
+end
+
+% Check the selected option for PLOT3
+switch feval(@(x) x{1}{x{2}},get(handles.popupmenu3,{'String','Value'}))
+    case '???'
+        y3=waveform.^2+3*(waveform-waveform).^2*sr.^2; 
+end
+
+
+% Handles to the theree axes
     h1 = handles.axes1;
     h2 = handles.axes4;
     h3 = handles.axes5;
     
-    
+% If xoomed. x=1 for zoom, x=0 for no zoom    
 x = getappdata(handles.figure1, 'x');
 if (~x)
     t = 0:1/sr:(length(waveform)-1)/sr;
-    char=zeros(length(waveform),1);
-    num=1:length(waveform)-1;
-    char(num,1)=waveform(num).^2+3*(waveform(num+1)-waveform(num)).^2*sr.^2;
-    sqr_sum=cumsum(waveform.*waveform);
-    abs_sum=cumsum(abs(waveform));
-    sqr_sum=sqr_sum/sqr_sum(length(waveform));
-    abs_sum=abs_sum/abs_sum(length(waveform));
-    plot(h1,t,waveform);
-    %vline ([150 200]);
-    plot (h3,t,char);
-    plot (h2,t,abs_sum);
-    plot (h2,t,sqr_sum,'Color','r');
+            
+    plot (h1,t,waveform);
+    plot (h2,t,y2);
+    plot (h3,t,y3);
+   
     load_picks(handles);
-    load_Q(handles);
+
 
 elseif (x)
+    % Get info about zoom window
     xoo = getappdata(handles.figure1, 'xoo');
-     t =xoo(1):1/sr:xoo(2);
-     waveform = waveform(round(xoo(1)*sr):round(xoo(1)*sr) + length(t) - 1);
-     axes(h1);
-    plot(h1,t,waveform);
-        char=zeros(length(waveform),1);
-    num=1:length(waveform)-1;
-    char(num,1)=waveform(num).^2+3*(waveform(num+1)-waveform(num)).^2*sr.^2;
-    sqr_sum=cumsum(waveform.*waveform);
-    abs_sum=cumsum(abs(waveform));
-    sqr_sum=sqr_sum/sqr_sum(length(waveform));
-    abs_sum=abs_sum/abs_sum(length(waveform));
-    plot (h3,t,char);
-    plot (h2,t,abs_sum);
-    plot (h2,t,sqr_sum,'Color','r');
+    t =xoo(1):1/sr:xoo(2);
+    
+    % Resize the vectors
+    waveform = waveform(round(xoo(1)*sr):round(xoo(1)*sr) + length(t) - 1);
+    y2 = y2(round(xoo(1)*sr):round(xoo(1)*sr) + length(t) - 1);
+    y3 = y3(round(xoo(1)*sr):round(xoo(1)*sr) + length(t) - 1);
+        
+    plot (h1,t,waveform);
+    plot (h2,t,y2);
+    plot (h3,t,y3);
     %load_picks(handles);       % Plotting the picks can screwup the zoomed
-    %axes
-    load_Q(handles);
+                                %view if the picks are outside current view. 
 end
 
+load_Q(handles);
+
+% Suggest autoPicks if enabled.
 auto = getappdata(handles.figure1, 'auto');
 if (auto)
     [x1,x2] = auto_pick (handles,sr,waveform);
     axes(h1);
     vline ([x1-10 x1 x2 x2+60],'r');
-    axes(h3);
-    vline ([x1-10 x1 x2 x2+60],'r');
-    setappdata(handles.figure1, 'auto', 0); % AutoPick disable
+    %axes(h3);
+    %vline ([x1-10 x1 x2 x2+60],'r');
+    setappdata(handles.figure1, 'auto', 0); % AutoPick disable for next plot unless called explicitely
 end
 
 
@@ -303,11 +324,17 @@ fclose(fid);
 A = reshape(A,15,length(A)/15)';
 
 % Read the acceleration, velocity, displacement and the original waveform column.
-ori = A(:,2);   setappdata(handles.figure1, 'ori', ori);
-acc = A(:,15);  setappdata(handles.figure1, 'acc', acc);
-dis = A(:,13);  setappdata(handles.figure1, 'dis', dis);
-vel = A(:,14);  setappdata(handles.figure1, 'vel', vel);
-
+ori = A(:,2);       setappdata(handles.figure1, 'ori', ori);
+acc = A(:,15);      setappdata(handles.figure1, 'acc', acc);
+dis = A(:,13);      setappdata(handles.figure1, 'dis', dis);
+vel = A(:,14);      setappdata(handles.figure1, 'vel', vel);
+degli = A(:,3);     setappdata(handles.figure1, 'degli', degli);
+detre = A(:,4);     setappdata(handles.figure1, 'detre', detre);
+windd = A(:,5);     setappdata(handles.figure1, 'windd', windd);
+fftre = A(:,6);     setappdata(handles.figure1, 'fftre', fftre);
+fftim = A(:,7);     setappdata(handles.figure1, 'fftim', fftim);
+fftabs = A(:,8);    setappdata(handles.figure1, 'fftabs', fftabs);
+filtdd = A(:,9);    setappdata(handles.figure1, 'filtdd', filtdd);
 
 % Plot it, and show the last modification time.
 update_plots(handles);
@@ -928,4 +955,73 @@ if ((f1 > 0 && f2 > 0) && (f1 < f2))
 else
     set(handles.edit2,'String',1);
     set(handles.edit4,'String',5);
+end
+
+
+% --- Executes on selection change in popupmenu1.
+function popupmenu1_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+update_plots(handles);
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu1
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in popupmenu2.
+function popupmenu2_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+update_plots(handles);
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu2
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in popupmenu3.
+function popupmenu3_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+update_plots(handles);
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu3 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu3
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end
