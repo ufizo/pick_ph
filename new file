@@ -1,0 +1,107 @@
+>> pick_ph
+??? SWITCH expression must be a scalar or string constant.
+
+Error in ==> pick_ph>update_plots at 169
+switch get(handles.uipanel6,'SelectedObject')
+
+Error in ==> pick_ph>listbox2_Callback at 340
+update_plots(handles);
+
+Error in ==> pick_ph>hotkeys at 698
+                listbox2_Callback(hObject, eventdata, handles);
+
+Error in ==> pick_ph>figure1_KeyPressFcn at 662
+hotkeys(hObject, eventdata, handles)
+
+Error in ==> gui_mainfcn at 96
+        feval(varargin{:});
+
+Error in ==> pick_ph at 31
+    gui_mainfcn(gui_State, varargin{:});
+
+Error in ==> @(hObject,eventdata)pick_ph('figure1_KeyPressFcn',hObject,eventdata,guidata(hObject))
+
+ 
+??? Error while evaluating figure KeyPressFcn
+
+??? SWITCH expression must be a scalar or string constant.
+
+Error in ==> pick_ph>update_plots at 169
+switch get(handles.uipanel6,'SelectedObject')
+
+Error in ==> pick_ph>listbox2_Callback at 340
+update_plots(handles);
+
+Error in ==> gui_mainfcn at 96
+        feval(varargin{:});
+
+Error in ==> pick_ph at 31
+    gui_mainfcn(gui_State, varargin{:});
+
+Error in ==> @(hObject,eventdata)pick_ph('listbox2_Callback',hObject,eventdata,guidata(hObject))
+
+ 
+??? Error while evaluating uicontrol Callback
+
+??? SWITCH expression must be a scalar or string constant.
+
+Error in ==> pick_ph>update_plots at 169
+switch get(handles.uipanel6,'SelectedObject')
+
+Error in ==> pick_ph>listbox2_Callback at 340
+update_plots(handles);
+
+Error in ==> gui_mainfcn at 96
+        feval(varargin{:});
+
+Error in ==> pick_ph at 31
+    gui_mainfcn(gui_State, varargin{:});
+
+Error in ==> @(hObject,eventdata)pick_ph('listbox2_Callback',hObject,eventdata,guidata(hObject))
+
+ 
+??? Error while evaluating uicontrol Callback
+
+??? SWITCH expression must be a scalar or string constant.
+
+Error in ==> pick_ph>update_plots at 169
+switch get(handles.uipanel6,'SelectedObject')
+
+Error in ==> pick_ph>listbox2_Callback at 340
+update_plots(handles);
+
+Error in ==> gui_mainfcn at 96
+        feval(varargin{:});
+
+Error in ==> pick_ph at 31
+    gui_mainfcn(gui_State, varargin{:});
+
+Error in ==> @(hObject,eventdata)pick_ph('listbox2_Callback',hObject,eventdata,guidata(hObject))
+
+ 
+??? Error while evaluating uicontrol Callback
+
+>> pick_ph
+??? SWITCH expression must be a scalar or string constant.
+
+Error in ==> pick_ph>update_plots at 169
+switch get(handles.uipanel6,'SelectedObject')
+
+Error in ==> pick_ph>listbox2_Callback at 340
+update_plots(handles);
+
+Error in ==> pick_ph>hotkeys at 698
+                listbox2_Callback(hObject, eventdata, handles);
+
+Error in ==> pick_ph>figure1_KeyPressFcn at 662
+hotkeys(hObject, eventdata, handles)
+
+Error in ==> gui_mainfcn at 96
+        feval(varargin{:});
+
+Error in ==> pick_ph at 31
+    gui_mainfcn(gui_State, varargin{:});
+
+Error in ==> @(hObject,eventdata)pick_ph('figure1_KeyPressFcn',hObject,eventdata,guidata(hObject))
+
+ 
