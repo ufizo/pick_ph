@@ -163,6 +163,7 @@ switch feval(@(x) x{1}{x{2}},get(handles.popupmenu1,{'String','Value'}))
         case 'Filtered'
         waveform = getappdata(handles.figure1, 'filtdd');
 end
+w2 = waveform;
 
 % Check for the selected filter,and apply it. Only for plot1
 % Butterworth bandpass, 4th order
@@ -201,6 +202,10 @@ switch feval(@(x) x{1}{x{2}},get(handles.popupmenu2,{'String','Value'}))
         y2 = cumsum(abs(waveform));
     case 'Square Sum'
         y2 = cumsum(waveform.*waveform);
+    case 'BandPassed'
+        [b a] = butter(4,[4/sr 13/sr]);	
+        y2 = filtfilt(b,a,w2);  
+        
 end
 
 % Check the selected option for PLOT3
@@ -583,7 +588,7 @@ cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p3 = 
 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4 = p(4,1);
 cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
 setappdata(handles.figure1, 'cat', cat);
-load_picks(handles);
+update_plots(handles);
 
 
 % --- Executes when the quality of the channel is changed
@@ -668,7 +673,40 @@ x = get(handles.figure1,'currentcharacter');
 if x == 'h'
     set(handles.edit1,'String','Hello!');
 end
-if x == '.'
+
+q = {'1','2','3','4','5','6','7'};
+if (ismember(x,q))
+    if (str2num(x) >=1 && str2num(x) <= 7)
+        set(handles.listbox3,'value',str2num(x));
+        cat = getappdata(handles.figure1, 'cat');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
+        setappdata(handles.figure1, 'cat', cat);
+    end
+end
+if x == 'x'
+    xoo = ginput(2);
+    xoo = xoo(:,1);
+    setappdata(handles.figure1, 'x', 1);
+    setappdata(handles.figure1, 'xoo', xoo);
+    update_plots(handles);
+end
+if x == 'o'
+    setappdata(handles.figure1, 'x', 0);
+    update_plots(handles);
+end
+
+if x == '9'
+    pushbutton5_Callback(hObject, eventdata, handles);
+end
+
+% For arrowKey controls
+%x=double(x);
+
+%Left arrow key (28) to go to previous channel
+%Right arrow key (29) to go to next channel
+%if x == 29
+if x == 'd'
     j = get(handles.listbox2,'value');
     if (j < str2num(get(handles.n_chn,'String')))
         list = get(handles.listbox2,'String');
@@ -713,42 +751,82 @@ if x == '.'
             listbox2_Callback(hObject, eventdata, handles);
         end
     end
+    if (j == str2num(get(handles.n_chn,'String')))
+        cat = getappdata(handles.figure1, 'cat');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
+        setappdata(handles.figure1, 'cat', cat);
+        set(handles.listbox1,'value',get(handles.listbox1,'value')+1);
+        listbox1_Callback(hObject, eventdata, handles);
+        set(handles.listbox2,'value',1);
+        listbox2_Callback(hObject, eventdata, handles);
+    end
 end
-if x == ','
+%if x == 28
+if x == 'a'
     j = get(handles.listbox2,'value');
     if (j > 1)
         set(handles.listbox2,'value',j-1);
+        cat = getappdata(handles.figure1, 'cat');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
+        setappdata(handles.figure1, 'cat', cat);
         listbox2_Callback(hObject, eventdata, handles);
-        cat = getappdata(handles.figure1, 'cat');
-        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
-        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
-        setappdata(handles.figure1, 'cat', cat);
     end
 end
-q = {'1','2','3','4','5','6','7'};
-if (ismember(x,q))
-    if (str2num(x) >=1 && str2num(x) <= 7)
-        set(handles.listbox3,'value',str2num(x));
-        cat = getappdata(handles.figure1, 'cat');
-        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
-        cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
-        setappdata(handles.figure1, 'cat', cat);
+
+% Up & Down arrow to change fiters
+%if x == 30
+if x == 'w'
+    switch get(handles.uipanel6,'SelectedObject')
+    case handles.radiobutton9
+        %No Filter
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton14);
+    case handles.radiobutton10
+        %2-5
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton9);
+    case handles.radiobutton11
+        %4-8
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton10);
+    case handles.radiobutton12
+        %8-16
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton11);
+    case handles.radiobutton14
+        %custom
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton12);
+    otherwise
+        % No filter
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton9);
     end
+    update_plots(handles);
+    
 end
-if x == 'x'
-    xoo = ginput(2);
-    xoo = xoo(:,1);
-    setappdata(handles.figure1, 'x', 1);
-    setappdata(handles.figure1, 'xoo', xoo);
+%if x == 31
+if x == 's'
+    switch get(handles.uipanel6,'SelectedObject')
+    case handles.radiobutton9
+        %No Filter
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton10);
+    case handles.radiobutton10
+        %2-5
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton11);
+    case handles.radiobutton11
+        %4-8
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton12);
+    case handles.radiobutton12
+        %8-16
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton14);
+    case handles.radiobutton14
+        %custom
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton9);
+    otherwise
+        % No filter
+        set(handles.uipanel6,'SelectedObject',handles.radiobutton9);
+    end
     update_plots(handles);
 end
-if x == 'o'
-    setappdata(handles.figure1, 'x', 0);
-    update_plots(handles);
-end
-if x == '9'
-    pushbutton5_Callback(hObject, eventdata, handles);
-end
+
+
 
 
 % --- Executes on key press with focus on listbox3 and none of its controls.
