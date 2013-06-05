@@ -1,6 +1,6 @@
 for i = 1:200
     if ~isempty(data(i).chn)
-        for j = 1:length(data(1))
+        for j = 1:length(data(i))
             [a b] = regexp(data(i).chn(j).ch_name,'(\S*?\.\.\S\S)E','match');
             if (b)
                 [a b] = regexp(data(i).chn(j).ch_name,'(\S*?\.\.\S\S)\S','tokens','match');
