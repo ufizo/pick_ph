@@ -11,7 +11,7 @@ function varargout = pick_ph(varargin)
 % Arpit Singh
 % me@arpitsingh.in
 %
-% Last Modified by GUIDE v2.5 02-Jun-2013 19:59:45
+% Last Modified by GUIDE v2.5 06-Jun-2013 13:51:37
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -316,6 +316,9 @@ set(handles.text16,'String',depth);
 set(handles.text17,'String',ev_date);
 set(handles.text21,'String',get(handles.listbox1,'value'));
 set(handles.text22,'String',get(handles.listbox2,'value'));
+
+zz = regexp(ev_date,'/','split');
+setappdata(handles.figure1, 'zz', zz);
 
 % Set the application data with the sampling rate
 setappdata(handles.figure1, 'sr', sr);
@@ -1103,3 +1106,17 @@ function popupmenu3_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+function write_out (handles)
+zz = getappdata(handles.figure1, 'zz'); 
+zz = zz{1};
+yr = zz{1}; mm = zz{2}; dd = zz{3};
+warndlg(zz{1})
+
+
+% --- Executes on button press in pushbutton11.
+function pushbutton11_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton11 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+write_out(handles)
