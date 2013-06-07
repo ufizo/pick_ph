@@ -36,8 +36,8 @@ end
 % --- Executes just before pick_ph is made visible.
 function pick_ph_OpeningFcn(hObject, eventdata, handles, varargin)
 % Default work directory when program is loaded
-%folder_name = '/home/ufizo/work';
-folder_name = '/home/asingh336/work';
+folder_name = '/home/ufizo/work';
+%folder_name = '/home/asingh336/work';
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
 setappdata(handles.figure1, 'x', 0);    %Un Xoomed to start with
@@ -316,9 +316,6 @@ set(handles.text16,'String',depth);
 set(handles.text17,'String',ev_date);
 set(handles.text21,'String',get(handles.listbox1,'value'));
 set(handles.text22,'String',get(handles.listbox2,'value'));
-
-zz = regexp(ev_date,'/','split');
-setappdata(handles.figure1, 'zz', zz);
 
 % Set the application data with the sampling rate
 setappdata(handles.figure1, 'sr', sr);
@@ -1108,10 +1105,107 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 function write_out (handles)
-zz = getappdata(handles.figure1, 'zz'); 
-zz = zz{1};
-yr = zz{1}; mm = zz{2}; dd = zz{3};
-warndlg(zz{1})
+cat = getappdata(handles.figure1, 'cat');
+load('known.mat');
+clc
+psacsv = fullfile(get(handles.work_dir,'string'),'psa.csv');
+fascsv = fullfile(get(handles.work_dir,'string'),'fas.csv');
+fw = fopen (psacsv,'w');
+fw1 = fopen (fascsv,'w');
+
+fprintf(fw,'Note: PSA and PGA are in cm/s^2 and PGV is in cm/s,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n');
+fprintf(fw,'PSAs are calculated for 5 percent of critical damping,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n');
+fprintf(fw,',,,,,,,,,,,,,,,,,,,,,,,Frequncy (Hz) at,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n');
+fprintf(fw,',,Year,Month,Day,Hour,Min,Sec,eve-lat,eve-lon,Depth,Mag.,Repi (km),Sta.,Comp.,ivert,sta-lat,sta-lon,VS30,Site class,Source,Sampling Rate,Quality,0.1,0.12,0.16,0.2,0.26,0.32,0.41,0.51,0.63,0.78,1,1.25,1.56,2,2.49,3.1,3.98,4.96,6.36,7.92,10.17,12.65,15.74,20.22,25.15,31.3,38.95,50,PGA,PGV\n');
+
+fprintf(fw1,'Note: PSA and PGA are in cm/s^2 and PGV is in cm/s,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n');
+fprintf(fw1,'PSAs are calculated for 5 percent of critical damping,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n');
+fprintf(fw1,',,,,,,,,,,,,,,,,,,,,,,,Frequncy (Hz) at,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n');
+fprintf(fw1,',,Year,Month,Day,Hour,Min,Sec,eve-lat,eve-lon,Depth,Mag.,Repi (km),Sta.,Comp.,ivert,sta-lat,sta-lon,VS30,Site class,Source,Sampling Rate,Quality,0.1,0.12,0.16,0.2,0.26,0.32,0.41,0.51,0.63,0.78,1,1.25,1.56,2,2.49,3.1,3.98,4.96,6.36,7.92,10.17,12.65,15.74,20.22,25.15,31.3,38.95,50,PGA,PGV\n');
+
+for i = 1:length(cat.data)
+    if ~isempty(cat.data(i).chn)
+        for j = 1:length(cat.data(i).chn)
+            path_data = fullfile(get(handles.work_dir,'string'),cat.data(i).chn(j).ev_name,cat.data(i).chn(j).ch_name,'result.txt');
+            fid = fopen(path_data,'rt');
+            R = {}; ev_date = {}; M = {}; depth = {}; sr = {};
+            x = 0; k = 1;
+            while (~strcmpi(x,'END_HEADER'))
+                x=fgetl(fid);
+                [ev_date{k},m1] = regexp(x,'Beginning\sof\srecord:\s+(\d+/\d+/\d+)','tokens','match');
+                [time{k},m1] = regexp(x,'Event\sorigon\stime:\s+(\d+:\d+:\d+)','tokens','match');
+                [depth{k},m1] = regexp(x,'Hypocentral\sdepth\(km\):\s+(\d+\.\d+)','tokens','match');
+                [M{k},m1] = regexp(x,'Magnitude:\s+(\d+\.\d+)','tokens','match');
+                [R{k},m1] = regexp(x,'Distance\sfrom\s\w+\s+:\s+(\d+\.\d+)','tokens','match');
+                [sr{k},m1] = regexp(x,'Sampling\srate:\s+(\d+\.\d+)','tokens','match');
+                [ep_lat{k},m1] = regexp(x,'Epicenter\slatitude:\s+(-?\d+\.\d+)','tokens','match');
+                [ep_lon{k},m1] = regexp(x,'Epicenter\slongitude:\s+(-?\d+\.\d+)','tokens','match');
+                [st_lat{k},m1] = regexp(x,'Station\slatitude:\s+(-?\d+\.\d+)','tokens','match');
+                [st_lon{k},m1] = regexp(x,'Station\slongitude:\s+(-?\d+\.\d+)','tokens','match');                
+                k = k + 1;
+            end
+            
+            fgetl(fid); fgetl(fid);
+            % Load the entire data into A, and reshape into 15 column format.
+            A = fscanf (fid, '%g');
+            fclose(fid);
+            A = reshape(A,15,length(A)/15)';
+
+            R  = R{find(~cellfun(@isempty,R))}{1};
+            ev_date  = ev_date{find(~cellfun(@isempty,ev_date))}{1};
+            time = time{find(~cellfun(@isempty,time))}{1};
+            ep_lat = ep_lat{find(~cellfun(@isempty,ep_lat))}{1};
+            ep_lon = ep_lon{find(~cellfun(@isempty,ep_lon))}{1};
+            depth  = depth{find(~cellfun(@isempty,depth))}{1};
+            M  = M{find(~cellfun(@isempty,M))}{1};
+            sr  = sr{find(~cellfun(@isempty,sr))}{1};
+            st_lat = st_lat{find(~cellfun(@isempty,st_lat))}{1};
+            st_lon = st_lon{find(~cellfun(@isempty,st_lon))}{1};            
+            
+            station = strrep(cat.data(i).chn(j).ch_name, 'CN.', '');
+            station = regexp(station,'\.\.','split');
+            sta = station{1}; comp = station{2};
+            date_data = regexp(ev_date,'/','split');
+            date_data = date_data{1};  yy = date_data{1}; mm = date_data{2}; dd = date_data{3};
+            time_data = regexp(time,':','split');
+            time_data = time_data{1};  hr = time_data{1}; min = time_data{2}; sec = time_data{3};
+            
+            
+            idx_c = strcmp(sta2,sta);
+            idx = find(idx_c);
+            
+            if isempty(idx)
+                vs30_1 = [];
+                source_1 = '';
+                class_1 = '';
+            else
+                vs30_1 = vs30(idx);
+                source_1 = source{idx};
+                class_1 = class{idx};
+            end
+            
+            p1 = round (12.312412*str2num(sr{1}));
+            p2 = round (52.12412*str2num(sr{1}));
+            acc = A(:,15);
+            
+            fas = get_FAS(acc(p1:p2),str2num(sr{1}),handles);
+            psa = get_PSA(acc(p1:p2),str2num(sr{1}),handles);
+                        
+            pga = max(abs(A(:,15)));
+            pgv = max(abs(A(:,14)));
+            
+            fprintf(fw,',,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,,%s,%s,%d,%s,%s,%s,%d,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.9f,%.9f',yy,mm,dd,hr,min,sec,ep_lat{1},ep_lon{1},depth{1},M{1},R{1},sta,comp,st_lat{1},st_lon{1},vs30_1,class_1,source_1,sr{1},cat.data(i).chn(j).Q,psa,pga,pgv);
+            fprintf(fw,'\n');
+            fprintf(fw1,',,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,,%s,%s,%d,%s,%s,%s,%d,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.9f,%.9f',yy,mm,dd,hr,min,sec,ep_lat{1},ep_lon{1},depth{1},M{1},R{1},sta,comp,st_lat{1},st_lon{1},vs30_1,class_1,source_1,sr{1},cat.data(i).chn(j).Q,fas,pga,pgv);
+            fprintf(fw1,'\n');
+            
+            fprintf('%d of %d events, %d of %d channel\n',i,length(cat.data),j,length(cat.data(i).chn));
+        end
+    end
+end
+
+fclose(fw);
+fclose(fw1);
 
 
 % --- Executes on button press in pushbutton11.
@@ -1120,3 +1214,37 @@ function pushbutton11_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 write_out(handles)
+
+function [Apsa] = get_PSA(x,sr,handles)
+fid1 = fopen(fullfile(get(handles.work_dir,'string'),'series'), 'w');
+fprintf(fid1, '%f\n', sr);
+for i = 1:length(x)
+fprintf(fid1, '%d\n', x(i));
+end
+fclose(fid1);
+
+fid = fopen(fullfile(get(handles.work_dir,'string'),'Beh1.ctl'), 'w');
+fprintf(fid, '%d\n', 1);
+fprintf(fid, '%s %d\n', fullfile(get(handles.work_dir,'string'),'series'),length(x));
+fprintf(fid, 'psa.out\n0\n5.\n28\n  0.1\n  0.12\n  0.16\n  0.2\n  0.26\n  0.32\n  0.41\n  0.51\n  0.63\n  0.78\n  1\n  1.25\n  1.56\n  2\n  2.49\n  3.1\n  3.98\n  4.96\n  6.36\n  7.92\n  10.17\n  12.65\n  15.74\n  20.22\n  25.15\n  31.3\n  38.95\n  50');
+fclose(fid);
+
+
+cd(get(handles.work_dir,'string'));
+system('./Beh1');
+
+load psa.out;
+%fpsa = psa(1,2:end); 
+Apsa = psa(2,2:end);
+
+function [Afas] = get_FAS(x,sr,handles)
+Af = fft(x); Af = Af(1:end/2);
+Af = smooth(abs(Af),200);
+Afas = zeros(28,1);
+fqs = [0.1 0.12	0.16 0.2 0.26 0.32 0.41 0.51 0.63 0.78 1 1.25 1.56 2 2.49 3.1 3.98 4.96	6.36 7.92 10.17 12.65 15.74	20.22 25.15 31.3 38.95 50];
+i = 1;
+while (round(fqs(i) * length(x)/sr) <= length(x)/2 && i < length(fqs))
+Afas(i) = Af(round(fqs(i) * length(x)/sr));
+i = i + 1;
+end
+ 
