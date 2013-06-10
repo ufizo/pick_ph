@@ -36,8 +36,8 @@ end
 % --- Executes just before pick_ph is made visible.
 function pick_ph_OpeningFcn(hObject, eventdata, handles, varargin)
 % Default work directory when program is loaded
-folder_name = '/home/ufizo/work';
-%folder_name = '/home/asingh336/work';
+%folder_name = '/home/ufizo/work';
+folder_name = '/home/asingh336/work';
 set(handles.work_dir,'string',folder_name);
 load_listBox(folder_name,handles);
 setappdata(handles.figure1, 'x', 0);    %Un Xoomed to start with
@@ -1126,6 +1126,7 @@ fprintf(fw1,',,Year,Month,Day,Hour,Min,Sec,eve-lat,eve-lon,Depth,Mag.,Repi (km),
 for i = 1:length(cat.data)
     if ~isempty(cat.data(i).chn)
         for j = 1:length(cat.data(i).chn)
+            if (cat.data(i).chn(j).Q <= 4 && cat.data(i).chn(j).p1 > 0)
             path_data = fullfile(get(handles.work_dir,'string'),cat.data(i).chn(j).ev_name,cat.data(i).chn(j).ch_name,'result.txt');
             fid = fopen(path_data,'rt');
             R = {}; ev_date = {}; M = {}; depth = {}; sr = {};
@@ -1184,8 +1185,8 @@ for i = 1:length(cat.data)
                 class_1 = class{idx};
             end
             
-            p1 = round (12.312412*str2num(sr{1}));
-            p2 = round (52.12412*str2num(sr{1}));
+            p1 = round (cat.data(i).chn(j).p1*str2num(sr{1}));
+            p2 = round (cat.data(i).chn(j).p4*str2num(sr{1}));
             acc = A(:,15);
             
             fas = get_FAS(acc(p1:p2),str2num(sr{1}),handles);
@@ -1200,6 +1201,7 @@ for i = 1:length(cat.data)
             fprintf(fw1,'\n');
             
             fprintf('%d of %d events, %d of %d channel\n',i,length(cat.data),j,length(cat.data(i).chn));
+            end
         end
     end
 end
@@ -1226,7 +1228,7 @@ fclose(fid1);
 fid = fopen(fullfile(get(handles.work_dir,'string'),'Beh1.ctl'), 'w');
 fprintf(fid, '%d\n', 1);
 fprintf(fid, '%s %d\n', fullfile(get(handles.work_dir,'string'),'series'),length(x));
-fprintf(fid, 'psa.out\n0\n5.\n28\n  0.1\n  0.12\n  0.16\n  0.2\n  0.26\n  0.32\n  0.41\n  0.51\n  0.63\n  0.78\n  1\n  1.25\n  1.56\n  2\n  2.49\n  3.1\n  3.98\n  4.96\n  6.36\n  7.92\n  10.17\n  12.65\n  15.74\n  20.22\n  25.15\n  31.3\n  38.95\n  50');
+fprintf(fid, 'psa.out\n0\n5.\n28\n  0.1\n  0.12\n  0.16\n  0.2\n  0.26\n  0.32\n  0.41\n  0.51\n  0.63\n  0.78\n  1\n  1.25\n  1.56\n  2\n  2.49\n  3.1\n  3.98\n  4.96\n  6.36\n  7.92\n  10.17\n  12.65\n  15.74\n  20.22\n  25.15\n  31.3\n  38.95\n  50\n');
 fclose(fid);
 
 
@@ -1238,13 +1240,15 @@ load psa.out;
 Apsa = psa(2,2:end);
 
 function [Afas] = get_FAS(x,sr,handles)
-Af = fft(x); Af = Af(1:end/2);
+Af = fft(x); Af = Af(1:round(end/2));
 Af = smooth(abs(Af),200);
 Afas = zeros(28,1);
-fqs = [0.1 0.12	0.16 0.2 0.26 0.32 0.41 0.51 0.63 0.78 1 1.25 1.56 2 2.49 3.1 3.98 4.96	6.36 7.92 10.17 12.65 15.74	20.22 25.15 31.3 38.95 50];
+fqs = [0.1 0.12	0.16 0.2 0.26 0.32 0.41 0.51 0.63 0.78 1 1.25 1.56 2 2.49 3.1 3.98 4.96	6.36 7.92 10.17 12.65 15.74 20.22 25.15 31.3 38.95 50];
 i = 1;
 while (round(fqs(i) * length(x)/sr) <= length(x)/2 && i < length(fqs))
-Afas(i) = Af(round(fqs(i) * length(x)/sr));
+    if (round(fqs(i) * length(x)/sr) > 0)
+        Afas(i) = Af(round(fqs(i) * length(x)/sr));
+    end
 i = i + 1;
 end
  
