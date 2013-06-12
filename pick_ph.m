@@ -74,7 +74,7 @@ function pushbutton1_Callback(~, ~, handles)
 function listbox1_Callback(~, ~, handles)
 
 	dir_list = get(handles.listbox1,'String');
-    ev_dir = dir_list(get(handles.listbox1,'value'));
+    	ev_dir = dir_list(get(handles.listbox1,'value'));
 	path1 = fullfile(get(handles.work_dir,'string'),ev_dir{1});
 	load_listBox2(path1,handles);
 	set(handles.text5,'Visible','on');
