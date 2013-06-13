@@ -22,7 +22,7 @@ function varargout = eq_v2(varargin)
 
 % Edit the above text to modify the response to help eq_v2
 
-% Last Modified by GUIDE v2.5 12-Jun-2013 12:03:52
+% Last Modified by GUIDE v2.5 13-Jun-2013 13:54:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -60,6 +60,14 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+
+setappdata(handles.figure1,'uipos',getpixelposition(handles.uipanel1));
+screen_size = get(0, 'ScreenSize');
+%set(handles.figure1, 'Resize','off', 'Units','pixels', 'Position',[0 0 screen_size(3) screen_size(4) ]);
+set(handles.uipanel1,'Parent',handles.figure1, 'Units','pixels');%, 'Position',[0 0 w-20 h]);
+set(handles.slider1,'Parent',handles.figure1, 'Style','slider', 'Enable','off', 'Units','pixels', 'Min',0-eps, 'Max',0, 'Value',0);%'Position',[w-20 0 20 h],
+
+
 
 % UIWAIT makes eq_v2 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -129,10 +137,51 @@ function updatePlots (handles)
 
 % --- Executes on selection change in listbox2.
 function listbox2_Callback(hObject, eventdata, handles)
+folder_name = '/home/asingh336/work';
 % hObject    handle to listbox2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+%# add and plot to axes one-by-one
+
+
+	dir_list1 = get(handles.listbox1,'String');
+	dir_list2 = get(handles.listbox2,'String');
+
+
+
+	ev = dir_list1(get(handles.listbox1,'value'));
+	chn = dir_list2(get(handles.listbox2,'value'));
+    ev = ev{1};% chn = chn{1};
+    
+ax = findobj(handles.uipanel1, 'type','axes');
+for i = 1:length(ax)
+    set(ax(i),'Visible','off');
+    delete(ax(i))
+end
+
+
+set(handles.slider1, 'Max',1, 'Min',0, 'Enable','off');
+set(handles.uipanel1, 'Position',getappdata(handles.figure1,'uipos'));
+
+
+n = length(get(handles.listbox2,'Value'));
+
+
+for i=1:n
+    hAx(i) = addAxis(handles);
+    path_data = fullfile(folder_name,ev,chn{i},'result_');
+	fid = fopen(path_data,'rt');
+    x=fgetl(fid);
+    A = fscanf (fid, '%g');
+	fclose(fid);
+    plot (A);
+    title(hAx(i), sprintf('plot %d',i))
+    
+end
+
+
  updatePlots (handles)
+ 
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox2 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox2
 
@@ -148,3 +197,95 @@ function listbox2_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on slider movement.
+function slider1_Callback(hObject, eventdata, handles)
+% hObject    handle to slider1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    %# slider value
+   slidee(handles);
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+function slidee(handles)
+    offset = get(handles.slider1,'Value');
+
+    %# update panel position
+    p = get(handles.uipanel1, 'Position');  %# panel current position
+    set(handles.uipanel1, 'Position',[p(1) -offset p(3) p(4)])
+    
+    
+% --- Executes during object creation, after setting all properties.
+function slider1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+
+function hAx = addAxis(handles)
+    %# look for previous axes
+    ax = findobj(handles.uipanel1, 'type','axes');
+
+    if isempty(ax)
+        %# create first axis
+        p = get(handles.uipanel1, 'Position');
+        h = p(4);
+        hAx = axes('Parent',handles.uipanel1, ...
+            'Units','normalized', 'Position',[0.05 0.05 0.9 .12]);
+        set(hAx, 'Units','pixels');
+
+    else
+        %# get height of figure
+        p = getpixelposition(handles.figure1);
+        h = p(4);
+
+        %# increase panel height, if it is full.
+        p = get(ax, 'Position');
+        if iscell(p), p = cell2mat(p); end
+        
+        %p = get(handles.uipanel1, 'Position');
+        % set(handles.uipanel1, 'Position',[p(1) p(2)-.25 p(3) p(4)+.25]);
+
+        %# compute position of new axis: append on top (y-shifted)
+        
+        p = [p(1,1) max(p(:,2))+h/8 p(1,3) p(1,4)];
+
+        %# create the new axis
+        hAx = axes('Parent',handles.uipanel1, ...
+            'Units','pixels', 'Position',p);
+        
+        pui = getpixelposition(handles.uipanel1);
+        h = pui(4);
+        
+        if max(p(:,2)) + p(1,4) > h
+            pui = get(handles.uipanel1, 'Position');
+            pui = [pui(1) pui(2) pui(3) pui(4) + (max(p(:,2)) + 1.3*p(1,4) - h)];
+            set(handles.uipanel1, 'Position',pui);
+        
+
+            %# adjust slider, and call its callback function
+            mx = get(handles.slider1, 'Max');
+            set(handles.slider1, 'Max',mx+(max(p(:,2)) + 1.3*p(1,4) - h), 'Min',0, 'Enable','on')
+            set(handles.slider1, 'Value',mx+(max(p(:,2)) + 1.3*p(1,4) - h))       %# scroll to new space
+            slidee(handles);
+        end
+    end
+
+    %# force GUI update
+    drawnow
+
+
+% --- Executes on button press in pushbutton1.
+function pushbutton1_Callback(hObject, eventdata, handles)
+keyboard
+% hObject    handle to pushbutton1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
