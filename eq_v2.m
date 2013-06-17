@@ -22,7 +22,7 @@ function varargout = eq_v2(varargin)
 
 % Edit the above text to modify the response to help eq_v2
 
-% Last Modified by GUIDE v2.5 13-Jun-2013 13:54:28
+% Last Modified by GUIDE v2.5 14-Jun-2013 12:58:41
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -166,17 +166,64 @@ set(handles.uipanel1, 'Position',getappdata(handles.figure1,'uipos'));
 
 n = length(get(handles.listbox2,'Value'));
 
-
+dat = cell(n,4);
 for i=1:n
-    hAx(i) = addAxis(handles);
-    path_data = fullfile(folder_name,ev,chn{i},'result_');
+    %hAx(i) = addAxis(handles);
+   
+    
+    
+    path_data = fullfile(folder_name,ev,chn{i},'result.txt');
 	fid = fopen(path_data,'rt');
-    x=fgetl(fid);
+	
+	% Loop till the end of the header, and read some info
+    R = cell(20,1); sr = cell(20,1);
+    x = 0; j = 1;
+	while (~strcmpi(x,'END_HEADER'))
+   		x=fgetl(fid);
+		[R{j}] = regexp(x,'Distance\sfrom\s\w+\s+:\s+(\d+\.\d+\skm)','tokens');
+		[sr{j}] = regexp(x,'Sampling\srate:\s+(\d+\.\d+)','tokens');
+		j = j + 1;
+	end
+    
+    R  = R{~cellfun(@isempty,R)}{1};
+	sr  = sr{~cellfun(@isempty,sr)}{1};
+    
+    sr = str2double(sr{1});
+    
+    dat{i,1} = R{1};
+    
+    
+    fgetl(fid); fgetl(fid);	%Skip two lines
+    
     A = fscanf (fid, '%g');
 	fclose(fid);
-    plot (A);
-    title(hAx(i), sprintf('plot %d',i))
+	A = reshape(A,15,length(A)/15)';
     
+    [m n] = size(A);
+    acc = zeros(m,1);
+    acc = A(:,15);
+    dat{i,2} = acc;
+    
+    %path_data = fullfile(folder_name,ev,chn{i},'result_');
+	%fid = fopen(path_data,'rt');
+    %sr=fgetl(fid); sr = str2double(sr);
+    %A = fscanf (fid, '%g');
+	%fclose(fid);
+    hAx(i) = addAxis(handles);
+    t = 0:1/sr:(m-1)/sr;
+    dat{i,3} = t;
+    plot (hAx(i),t,acc);
+    %legend(hAx(i),'string1');
+    ylabel(hAx(i), sprintf('%s \n %s',dat{i,4},dat{i,1}),'FontSize',8 ,'FontWeight','bold');
+    dat{i,4} = chn{i};
+    
+end
+
+%dat = sortrows(dat,1);
+for i = 1:n
+ %   hAx(i) = addAxis(handles);
+  %  plot (hAx(i),dat{i,3},dat{i,2});
+   % ylabel(hAx(i), sprintf('%s \n %s',dat{i,4},dat{i,1}),'FontSize',8 ,'FontWeight','bold');
 end
 
 
@@ -239,7 +286,7 @@ function hAx = addAxis(handles)
         p = get(handles.uipanel1, 'Position');
         h = p(4);
         hAx = axes('Parent',handles.uipanel1, ...
-            'Units','normalized', 'Position',[0.05 0.05 0.9 .12]);
+            'Units','normalized', 'Position',[0.08 0.05 0.9 .12]);
         set(hAx, 'Units','pixels');
 
     else
@@ -289,3 +336,21 @@ keyboard
 % hObject    handle to pushbutton1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in checkbox3.
+function checkbox3_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox3
+
+
+% --- Executes on button press in checkbox4.
+function checkbox4_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox4
