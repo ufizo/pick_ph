@@ -943,7 +943,8 @@ for i = 1:length(cat.data)
             x = 0; k = 1;
             while (~strcmpi(x,'END_HEADER'))
                 x=fgetl(fid);
-                [ev_date{k}] = gexp(x,'Event\sorigon\stime:\s+(\d+:\d+:\d+)','tokens');
+                [ev_date{k}] = regexp(x,'Beginning\sof\srecord:\s+(\d+/\d+/\d+)','tokens');
+                [time{k}] = regexp(x,'Event\sorigon\stime:\s+(\d+:\d+:\d+)','tokens');
                 [depth{k}] = regexp(x,'Hypocentral\sdepth\(km\):\s+(\d+\.\d+)','tokens');
                 [M{k}] = regexp(x,'Magnitude:\s+(\d+\.\d+)','tokens');
                 [R{k}] = regexp(x,'Distance\sfrom\s\w+\s+:\s+(\d+\.\d+)','tokens');
@@ -951,7 +952,7 @@ for i = 1:length(cat.data)
                 [ep_lat{k}] = regexp(x,'Epicenter\slatitude:\s+(-?\d+\.\d+)','tokens');
                 [ep_lon{k}] = regexp(x,'Epicenter\slongitude:\s+(-?\d+\.\d+)','tokens');
                 [st_lat{k}] = regexp(x,'Station\slatitude:\s+(-?\d+\.\d+)','tokens');
-                [st_lon{k}] = regexp(x,'Station\slongitude:\s+(-?\d+\.\d+)','tokens');                
+                [st_lon{k}] = regexp(x,'Station\slongitude:\s+(-?\d+\.\d+)','tokens');
                 k = k + 1;
             end
             
@@ -961,24 +962,24 @@ for i = 1:length(cat.data)
             fclose(fid);
             A = reshape(A,15,length(A)/15)';
 
-            R  = R{~cellfun(@isempty,R)}{1};
-            ev_date  = ev_date{~cellfun(@isempty,ev_date)}{1};
-            time = time{~cellfun(@isempty,time)}{1};
-            ep_lat = ep_lat{~cellfun(@isempty,ep_lat)}{1};
-            ep_lon = ep_lon{~cellfun(@isempty,ep_lon)}{1};
-            depth  = depth{~cellfun(@isempty,depth)}{1};
-            M  = M{~cellfun(@isempty,M)}{1};
-            sr  = sr{~cellfun(@isempty,sr)}{1};
-            st_lat = st_lat{~cellfun(@isempty,st_lat)}{1};
-            st_lon = st_lon{~cellfun(@isempty,st_lon)}{1};            
+            R = R{find(~cellfun(@isempty,R))}{1};
+            ev_date = ev_date{find(~cellfun(@isempty,ev_date))}{1};
+            time = time{find(~cellfun(@isempty,time))}{1};
+            ep_lat = ep_lat{find(~cellfun(@isempty,ep_lat))}{1};
+            ep_lon = ep_lon{find(~cellfun(@isempty,ep_lon))}{1};
+            depth = depth{find(~cellfun(@isempty,depth))}{1};
+            M = M{find(~cellfun(@isempty,M))}{1};
+            sr = sr{find(~cellfun(@isempty,sr))}{1};
+            st_lat = st_lat{find(~cellfun(@isempty,st_lat))}{1};
+            st_lon = st_lon{find(~cellfun(@isempty,st_lon))}{1};
             
             station = strrep(cat.data(i).chn(j).ch_name, 'CN.', '');
             station = regexp(station,'\.\.','split');
             sta = station{1}; comp = station{2};
             date_data = regexp(ev_date,'/','split');
-            date_data = date_data{1};  yy = date_data{1}; mm = date_data{2}; dd = date_data{3};
+            date_data = date_data{1}; yy = date_data{1}; mm = date_data{2}; dd = date_data{3};
             time_data = regexp(time,':','split');
-            time_data = time_data{1};  hr = time_data{1}; min = time_data{2}; sec = time_data{3};
+            time_data = time_data{1}; hr = time_data{1}; min = time_data{2}; sec = time_data{3};
             
             
             idx_c = strcmp(sta2,sta);
@@ -1049,14 +1050,22 @@ load psa.out;
 Apsa = psa(2,2:end);
 
 function [Afas] = get_FAS(x,sr,handles)
-Af = fft(x); Af = Af(1:round(end/2));
-Af = smooth(abs(Af),200);
+Af = fft(x); 
+
 Afas = zeros(28,1);
-fqs = [0.1 0.12	0.16 0.2 0.26 0.32 0.41 0.51 0.63 0.78 1 1.25 1.56 2 2.49 3.1 3.98 4.96	6.36 7.92 10.17 12.65 15.74 20.22 25.15 31.3 38.95 50];
+fqs = [0.1 0.12	0.16 0.2 0.26 0.32 0.41 0.51 0.63 0.78 1 1.25 1.56 2 2.49 3.1 3.98 4.96	6.36 7.92 10.17 12.65 15.74 20.22 25.15 31.3 38.95 50 57];
+fn = floor(fqs * length(x)/sr);         % Index of x corresponding to the frequency fqs(i)
 i = 1;
-while (round(fqs(i) * length(x)/sr) <= length(x)/2 && i < length(fqs))
-    if (round(fqs(i) * length(x)/sr) > 0)
-        Afas(i) = Af(round(fqs(i) * length(x)/sr));
+
+while (fn(i) <= length(x)/2 && i <= length(fqs))
+    if (i == 1)
+        f1 = 1; f2 = fn(i+1);
+    else
+        f1 = fn(i-1); f2 = fn(i+1);
+    end
+    
+    if (fn(i) > 0 && f1 > 0 && f2 > 0 && f1 <= f2)
+        Afas(i) = 10^(mean(log10(abs(Af(f1:f2)))))/sr; % Geometric mean
     end
 i = i + 1;
 end
