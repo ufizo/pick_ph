@@ -55,6 +55,7 @@ function eq_v2_OpeningFcn(hObject, eventdata, handles, varargin)
 	folder_name = '/home/asingh336/work';
 	set(handles.work_dir,'string',folder_name);
 	load_listBox(folder_name,handles);
+    readCat(handles);
 
 % Choose default command line output for eq_v2
 handles.output = hObject;
@@ -145,7 +146,7 @@ folder_name = get(handles.work_dir,'string');
 %# add and plot to axes one-by-one
 
 
-    if(readCat(handles))
+    if(1)
         cat = getappdata(handles.figure1, 'cat');
 
 
@@ -176,6 +177,9 @@ dat = cell(n,4);
 for i=1:n
     
     if (isfield(cat.data(get(handles.listbox1,'value')).chn(i), 'R'))
+        if (iscell(cat.data(get(handles.listbox1,'value')).chn(i).R))
+            cat.data(get(handles.listbox1,'value')).chn(i).R = cat.data(get(handles.listbox1,'value')).chn(i).R{1};
+        end
         if (cat.data(get(handles.listbox1,'value')).chn(i).R > 0)
             path_data = fullfile(folder_name,ev,chn{i},'result_');
             fid = fopen(path_data,'rt');
@@ -188,9 +192,11 @@ for i=1:n
             dat{i,1} = cat.data(get(handles.listbox1,'value')).chn(i).R;
             dat{i,2} = acc;
             dat{i,4} = chn{i};
-    
+            
+            m = length(A);
             t = 0:1/sr:(m-1)/sr;
             dat{i,3} = t;
+            sprintf('reading _')
         else
         
             %
@@ -231,7 +237,9 @@ for i=1:n
             t = 0:1/sr:(m-1)/sr;
             dat{i,3} = t;
             setappdata(handles.figure1, 'cat', cat);
+            data = cat.data;
             save (fullfile(get(handles.work_dir,'string'),'catalogue.mat'),'data');
+            sprintf('reading txt')
         end
     else
         
@@ -275,6 +283,7 @@ for i=1:n
     t = 0:1/sr:(m-1)/sr;
     dat{i,3} = t;
     setappdata(handles.figure1, 'cat', cat);
+    data = cat.data;
     save (fullfile(get(handles.work_dir,'string'),'catalogue.mat'),'data');
     end
 end

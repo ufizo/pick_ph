@@ -299,7 +299,7 @@ function listbox2_Callback(~, ~, handles)
     
     % Save R in the catalogue for use in multichannel plot
     cat = getappdata(handles.figure1, 'cat');
-	cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).R = R;
+	cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).R = R{1};
 	setappdata(handles.figure1, 'cat', cat);
     
 	% Set the application data with the sampling rate
