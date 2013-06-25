@@ -74,7 +74,7 @@ function pushbutton1_Callback(~, ~, handles)
 function listbox1_Callback(~, ~, handles)
 
 	dir_list = get(handles.listbox1,'String');
-    	ev_dir = dir_list(get(handles.listbox1,'value'));
+    ev_dir = dir_list(get(handles.listbox1,'value'));
 	path1 = fullfile(get(handles.work_dir,'string'),ev_dir{1});
 	load_listBox2(path1,handles);
 	set(handles.text5,'Visible','on');
@@ -296,7 +296,12 @@ function listbox2_Callback(~, ~, handles)
 	set(handles.text17,'String',ev_date);
 	set(handles.text21,'String',get(handles.listbox1,'value'));
 	set(handles.text22,'String',get(handles.listbox2,'value'));
-
+    
+    % Save R in the catalogue for use in multichannel plot
+    cat = getappdata(handles.figure1, 'cat');
+	cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).R = R;
+	setappdata(handles.figure1, 'cat', cat);
+    
 	% Set the application data with the sampling rate
 	% Will be used while plotting
 	setappdata(handles.figure1, 'sr', sr);
@@ -379,6 +384,7 @@ function gencat_Callback(~, ~, handles)
     			data(i).chn(j).p2 = 0;
     			data(i).chn(j).p3 = 0;
     			data(i).chn(j).p4 = 0;
+                data(i).chn(j).R = 0;
     			data(i).chn(j).modtime = 0;
 		end
 	end
@@ -599,7 +605,7 @@ function figure1_KeyPressFcn(hObject, eventdata, handles)
 % The Keyboard shortcuts
 function hotkeys(hObject, eventdata, handles)
 
-	%% Sort of easter egg?
+	%% kind of easter egg?
 	x = get(handles.figure1,'currentcharacter');
 	if x == 'h'
     		set(handles.edit1,'String','Hello! need help? mail to: me@arpitsingh.in');

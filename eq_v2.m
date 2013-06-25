@@ -22,7 +22,7 @@ function varargout = eq_v2(varargin)
 
 % Edit the above text to modify the response to help eq_v2
 
-% Last Modified by GUIDE v2.5 14-Jun-2013 12:58:41
+% Last Modified by GUIDE v2.5 25-Jun-2013 13:46:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,8 +52,9 @@ function eq_v2_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to eq_v2 (see VARARGIN)
 
-folder_name = '/home/asingh336/work';
-load_listBox(folder_name,handles);
+	folder_name = '/home/asingh336/work';
+	set(handles.work_dir,'string',folder_name);
+	load_listBox(folder_name,handles);
 
 % Choose default command line output for eq_v2
 handles.output = hObject;
@@ -84,6 +85,7 @@ function varargout = eq_v2_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
+
 function load_listBox(dir_path,handles)
 
 	cd (dir_path)
@@ -95,7 +97,7 @@ function load_listBox(dir_path,handles)
 	guidata(handles.figure1,handles)
 	set(handles.listbox1,'String',handles.file_names,'Value',1)
 	cellsize = size(handles.file_names);
-	%set(handles.n_events,'String',cellsize(1,1)) 
+	set(handles.n_evts,'String',cellsize(1,1)) 
 
 function load_listBox2(dir_path,handles)
 
@@ -112,10 +114,9 @@ cd (dir_path)
     
 % --- Executes on selection change in listbox1.
 function listbox1_Callback(hObject, eventdata, handles)
-    work_dir = '/home/asingh336/work';
-	dir_list = get(handles.listbox1,'String');
+    dir_list = get(handles.listbox1,'String');
     ev_dir = dir_list(get(handles.listbox1,'value'));
-	path1 = fullfile(work_dir,ev_dir{1});
+    path1 = fullfile(get(handles.work_dir,'string'),ev_dir{1});
 	load_listBox2(path1,handles);
 
 
@@ -137,11 +138,16 @@ function updatePlots (handles)
 
 % --- Executes on selection change in listbox2.
 function listbox2_Callback(hObject, eventdata, handles)
-folder_name = '/home/asingh336/work';
+folder_name = get(handles.work_dir,'string');
 % hObject    handle to listbox2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %# add and plot to axes one-by-one
+
+
+    if(readCat(handles))
+        cat = getappdata(handles.figure1, 'cat');
+
 
 
 	dir_list1 = get(handles.listbox1,'String');
@@ -168,11 +174,68 @@ n = length(get(handles.listbox2,'Value'));
 
 dat = cell(n,4);
 for i=1:n
-    %hAx(i) = addAxis(handles);
-   
+    
+    if (isfield(cat.data(get(handles.listbox1,'value')).chn(i), 'R'))
+        if (cat.data(get(handles.listbox1,'value')).chn(i).R > 0)
+            path_data = fullfile(folder_name,ev,chn{i},'result_');
+            fid = fopen(path_data,'rt');
+            sr=fgetl(fid); sr = str2double(sr);
+            A = fscanf (fid, '%g');
+            fclose(fid);
+            
+            acc = A;
+            
+            dat{i,1} = cat.data(get(handles.listbox1,'value')).chn(i).R;
+            dat{i,2} = acc;
+            dat{i,4} = chn{i};
+    
+            t = 0:1/sr:(m-1)/sr;
+            dat{i,3} = t;
+        else
+        
+            %
+            path_data = fullfile(folder_name,ev,chn{i},'result.txt');
+            fid = fopen(path_data,'rt');
+	
+            % Loop till the end of the header, and read some info
+            R = cell(20,1); sr = cell(20,1);
+            x = 0; j = 1;
+            while (~strcmpi(x,'END_HEADER'))
+                x=fgetl(fid);
+                [R{j}] = regexp(x,'Distance\sfrom\s\w+\s+:\s+(\d+\.\d+\skm)','tokens');
+                [sr{j}] = regexp(x,'Sampling\srate:\s+(\d+\.\d+)','tokens');
+                j = j + 1;
+            end
+    
+            R  = R{~cellfun(@isempty,R)}{1};
+            cat.data(get(handles.listbox1,'value')).chn(i).R = R{1};
+            sr  = sr{~cellfun(@isempty,sr)}{1};
+    
+            sr = str2double(sr{1});
+    
+            dat{i,1} = R{1};
     
     
-    path_data = fullfile(folder_name,ev,chn{i},'result.txt');
+            fgetl(fid); fgetl(fid);	%Skip two lines
+    
+            A = fscanf (fid, '%g');
+            fclose(fid);
+            A = reshape(A,15,length(A)/15)';
+    
+            [m n2] = size(A);
+            acc = zeros(m,1);
+            acc = A(:,15);
+            dat{i,2} = acc;
+            dat{i,4} = chn{i};
+    
+            t = 0:1/sr:(m-1)/sr;
+            dat{i,3} = t;
+            setappdata(handles.figure1, 'cat', cat);
+            save (fullfile(get(handles.work_dir,'string'),'catalogue.mat'),'data');
+        end
+    else
+        
+            path_data = fullfile(folder_name,ev,chn{i},'result.txt');
 	fid = fopen(path_data,'rt');
 	
 	% Loop till the end of the header, and read some info
@@ -183,9 +246,11 @@ for i=1:n
 		[R{j}] = regexp(x,'Distance\sfrom\s\w+\s+:\s+(\d+\.\d+\skm)','tokens');
 		[sr{j}] = regexp(x,'Sampling\srate:\s+(\d+\.\d+)','tokens');
 		j = j + 1;
-	end
+    end
     
+    % Repeating code. A bad thing!
     R  = R{~cellfun(@isempty,R)}{1};
+    cat.data(get(handles.listbox1,'value')).chn(i).R = R{1};
 	sr  = sr{~cellfun(@isempty,sr)}{1};
     
     sr = str2double(sr{1});
@@ -199,35 +264,36 @@ for i=1:n
 	fclose(fid);
 	A = reshape(A,15,length(A)/15)';
     
-    [m n] = size(A);
+    [m n2] = size(A);
     acc = zeros(m,1);
     acc = A(:,15);
     dat{i,2} = acc;
-    
-    %path_data = fullfile(folder_name,ev,chn{i},'result_');
-	%fid = fopen(path_data,'rt');
-    %sr=fgetl(fid); sr = str2double(sr);
-    %A = fscanf (fid, '%g');
-	%fclose(fid);
-    hAx(i) = addAxis(handles);
-    t = 0:1/sr:(m-1)/sr;
-    dat{i,3} = t;
-    plot (hAx(i),t,acc);
-    %legend(hAx(i),'string1');
-    ylabel(hAx(i), sprintf('%s \n %s',dat{i,4},dat{i,1}),'FontSize',8 ,'FontWeight','bold');
     dat{i,4} = chn{i};
     
+    
+
+    t = 0:1/sr:(m-1)/sr;
+    dat{i,3} = t;
+    setappdata(handles.figure1, 'cat', cat);
+    save (fullfile(get(handles.work_dir,'string'),'catalogue.mat'),'data');
+    end
 end
 
-%dat = sortrows(dat,1);
+dat = sortrows(dat,1);
+
+
 for i = 1:n
- %   hAx(i) = addAxis(handles);
-  %  plot (hAx(i),dat{i,3},dat{i,2});
-   % ylabel(hAx(i), sprintf('%s \n %s',dat{i,4},dat{i,1}),'FontSize',8 ,'FontWeight','bold');
+    
+    hAx(i) = addAxis(handles);
+    plot (hAx(i),dat{i,3},dat{i,2});
+    ylabel(hAx(i), sprintf('%s \n %s',dat{i,4},dat{i,1}),'FontSize',8 ,'FontWeight','bold');
+  
 end
 
 
  updatePlots (handles)
+ 
+    end %% End if for read cat
  
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox2 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox2
@@ -329,7 +395,19 @@ function hAx = addAxis(handles)
     %# force GUI update
     drawnow
 
-
+function res = readCat(handles)
+	n_evts = get(handles.n_evts,'String');
+	cat_path = fullfile(get(handles.work_dir,'string'),'catalogue.mat');
+        if (~exist(cat_path, 'file'))
+            res = false;
+        else
+            cat = load (cat_path);
+    		setappdata(handles.figure1, 'cat', cat);
+            res = true;
+        end
+        
+    
+    
 % --- Executes on button press in pushbutton1.
 function pushbutton1_Callback(hObject, eventdata, handles)
 keyboard
@@ -343,7 +421,7 @@ function checkbox3_Callback(hObject, eventdata, handles)
 % hObject    handle to checkbox3 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+listbox2_Callback(hObject, eventdata, handles);
 % Hint: get(hObject,'Value') returns toggle state of checkbox3
 
 
@@ -354,3 +432,14 @@ function checkbox4_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox4
+
+
+% --- Executes on button press in pushbutton2.
+function pushbutton2_Callback(hObject, eventdata, handles)
+	folder_name = uigetdir('/home/','Select your DATA dir');
+	set(handles.work_dir,'string',folder_name);
+	% populate the listbox, with these directories
+	load_listBox(folder_name,handles);
+% hObject    handle to pushbutton2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
