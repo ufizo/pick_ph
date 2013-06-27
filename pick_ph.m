@@ -35,7 +35,7 @@ end
 
 % --- Executes just before pick_ph is made visible.
 function pick_ph_OpeningFcn(hObject, ~, handles, varargin)
-
+    warning off
 	% Default work directory when program is loaded
 	%folder_name = '/home/ufizo/work';
 	folder_name = '/home/asingh336/work';
@@ -356,6 +356,7 @@ function listbox2_Callback(~, ~, handles)
     else
         % MultiChannel mode on
         ev = ev{1};
+        i_ch = get(handles.listbox2,'value');
         
         % Delete existing objects from uimulti
         ax = findobj(handles.uimulti, 'type','axes');
@@ -376,11 +377,11 @@ function listbox2_Callback(~, ~, handles)
         
         % Loop over all the selected channels
         for i=1:n
-            if (isfield(cat.data(get(handles.listbox1,'value')).chn(i), 'R'))
-            if (iscell(cat.data(get(handles.listbox1,'value')).chn(i).R))
-                cat.data(get(handles.listbox1,'value')).chn(i).R = cat.data(get(handles.listbox1,'value')).chn(i).R{1};
+            if (isfield(cat.data(get(handles.listbox1,'value')).chn(i_ch(i)), 'R'))
+            if (iscell(cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).R))
+                cat.data(get(handles.listbox1,'value')).chn(i).R = cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).R{1};
             end
-            if (cat.data(get(handles.listbox1,'value')).chn(i).R > 0)
+            if (cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).R > 0)
                 % We have the R value in catalogue. Will read result_ for
                 % speed
                 path_data = fullfile(get(handles.work_dir,'string'),ev,chn{i},'result_');
@@ -401,7 +402,7 @@ function listbox2_Callback(~, ~, handles)
                 % 3 => Time vector for plotting
                 % 4 => Channel Name
                 
-                dat{i,1} = cat.data(get(handles.listbox1,'value')).chn(i).R;
+                dat{i,1} = cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).R;
                 dat{i,2} = acc;
                 dat{i,4} = chn{i};
                 dat{i,3} = t;
@@ -409,12 +410,20 @@ function listbox2_Callback(~, ~, handles)
                 sprintf('reading _')
             else
                 % Catalogue does not have R value
-                dat{i} = getDat(handles,ev,chn{i},cat,i);
+                cols = getDat(handles,ev,chn{i},cat,i);
+                dat{i,1} = cols{1,1};
+                dat{i,2} = cols{1,2};
+                dat{i,3} = cols{1,3};
+                dat{i,4} = cols{1,4};
             end
             
             else
                 % Catalogue does not have R value
-                dat{i} = getDat(handles,ev,chn{i},cat,i);
+                cols = getDat(handles,ev,chn{i},cat,i);
+                dat{i,1} = cols{1,1};
+                dat{i,2} = cols{1,2};
+                dat{i,3} = cols{1,3};
+                dat{i,4} = cols{1,4};
             end
             
             % Read max amps for relative amp plotting
@@ -425,14 +434,22 @@ function listbox2_Callback(~, ~, handles)
             dat = sortrows(dat,1);
         end
 
-        xmax = max(t);
+        xmax = max(dat{i,3});
         ymax = max(ymax);
-        
+        i_ch = get(handles.listbox2,'value');
         
         for i = 1:n
     
             hAx(i) = addAxis(handles);
             plot (hAx(i),dat{i,3},dat{i,2});
+            
+            p1 = cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).p1;
+    		p2 = cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).p2;
+    		p3 = cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).p3;
+    		p4 = cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).p4;
+    		h1 = hAx(i);
+    		axes(h1);
+    		h = vline ([p1 p2 p3 p4]);
             
             xlim([0 xmax]);
             if (get(handles.checkbox2,'value'))
@@ -476,7 +493,7 @@ function hAx = addAxis(handles)
         %p = get(handles.uipanel1, 'Position');
         % set(handles.uipanel1, 'Position',[p(1) p(2)-.25 p(3) p(4)+.25]);
 
-        %# compute position of new axis: append on top (y-shifted)
+        %# computgetDat(handles,ev,chn,cat,i)e position of new axis: append on top (y-shifted)
         
         p = [p(1,1) max(p(:,2))+h/8 p(1,3) p(1,4)];
 
@@ -534,6 +551,8 @@ function dat = getDat(handles,ev,chn,cat,i)
     
     R  = R{~cellfun(@isempty,R)}{1};
     cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).R = R{1};
+    R{1}
+    i_ch(i)
 	sr  = sr{~cellfun(@isempty,sr)}{1};
     
     sr = str2double(sr{1});
@@ -558,7 +577,11 @@ function dat = getDat(handles,ev,chn,cat,i)
 
     t = 0:1/sr:(m-1)/sr;
     dat{1,3} = t;
-    setappdata(handles.figure1, 'cat', cat);
+    
+    
+    %cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).R = R{1};
+	setappdata(handles.figure1, 'cat', cat);
+    
     data = cat.data;
     save (fullfile(get(handles.work_dir,'string'),'catalogue.mat'),'data');
     sprintf('reading txt')
