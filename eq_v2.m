@@ -286,15 +286,31 @@ for i=1:n
     data = cat.data;
     save (fullfile(get(handles.work_dir,'string'),'catalogue.mat'),'data');
     end
+    
+    ymax(i) = max(abs(dat{i,2}));
 end
 
-dat = sortrows(dat,1);
+if (get(handles.checkbox3,'value'))
+    dat = sortrows(dat,1);
+end
 
+xmax = max(t);
+ymax = max(ymax);
 
 for i = 1:n
     
     hAx(i) = addAxis(handles);
     plot (hAx(i),dat{i,3},dat{i,2});
+    xlim([0 xmax]);
+    if (get(handles.checkbox4,'value'))
+        ylim([-ymax ymax])
+    end
+    
+    if (i > 1)
+    set(hAx(i),'xtick',[])
+    set(hAx(i),'xticklabel',[])
+    end
+    
     ylabel(hAx(i), sprintf('%s \n %s',dat{i,4},dat{i,1}),'FontSize',8 ,'FontWeight','bold');
   
 end
@@ -384,6 +400,7 @@ function hAx = addAxis(handles)
         hAx = axes('Parent',handles.uipanel1, ...
             'Units','pixels', 'Position',p);
         
+        
         pui = getpixelposition(handles.uipanel1);
         h = pui(4);
         
@@ -439,7 +456,7 @@ function checkbox4_Callback(hObject, eventdata, handles)
 % hObject    handle to checkbox4 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+listbox2_Callback(hObject, eventdata, handles);
 % Hint: get(hObject,'Value') returns toggle state of checkbox4
 
 
