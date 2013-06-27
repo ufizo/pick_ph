@@ -11,7 +11,7 @@ function varargout = pick_ph(varargin)
 % Arpit Singh
 % me@arpitsingh.in
 %
-% Last Modified by GUIDE v2.5 06-Jun-2013 13:51:37
+% Last Modified by GUIDE v2.5 27-Jun-2013 15:25:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -43,6 +43,7 @@ function pick_ph_OpeningFcn(hObject, ~, handles, varargin)
 	load_listBox(folder_name,handles);
 	setappdata(handles.figure1, 'x', 0);    %Un Xoomed to start with
 	setappdata(handles.figure1, 'auto', 0); %AutoPick disabled by default because it needs a lot of processing power.
+    setappdata(handles.figure1, 'multi', 0);%MultiChannel mode off by default
 
 	%Check if listBox is empty, and check for catalogue
 	checkdata(handles);
@@ -52,6 +53,11 @@ function pick_ph_OpeningFcn(hObject, ~, handles, varargin)
 
 	% Update handles structure
 	guidata(hObject, handles);
+    
+    % Setup slider and panel for multiChannel
+    setappdata(handles.figure1,'uipos',getpixelposition(handles.uimulti));
+    set(handles.uimulti,'Parent',handles.figure1, 'Units','pixels');%, 'Position',[0 0 w-20 h]);
+    set(handles.slider3,'Parent',handles.figure1, 'Style','slider', 'Enable','off', 'Units','pixels', 'Min',0-eps, 'Max',0, 'Value',0);%'Position',[w-20 0 20 h],
 
 	% UIWAIT makes pick_ph wait for user response (see UIRESUME)
 	% uiwait(handles.figure1);
@@ -254,16 +260,24 @@ function update_plots(handles)
 % Read the result.txt file for the channel and update the figure with the 
 % scanned into. 
 function listbox2_Callback(~, ~, handles)
-	% Get the list of events, and the list of channels
+
+    % Check the state of multi channel mode
+    mmode = getappdata(handles.figure1, 'multi');
+    cat = getappdata(handles.figure1, 'cat');
+    
+    % Get the list of events, and the list of channels
 	dir_list1 = get(handles.listbox1,'String');
 	dir_list2 = get(handles.listbox2,'String');
-
-
-	x = 0; i = 1;
-	% Path to the result.txt for the selected channel
-	ev = dir_list1(get(handles.listbox1,'value'));
+    
+    ev = dir_list1(get(handles.listbox1,'value'));
 	chn = dir_list2(get(handles.listbox2,'value'));
-	ev = ev{1}; chn = chn{1};		%% //TO-DO// Properly handle returned cells
+    
+    if (~mmode)
+	
+	x = 0; i = 1;
+	
+    % Path to the result.txt for the selected channel
+    ev = ev{1}; chn = chn{1};		%% //TO-DO// Properly handle returned cells
 	path_data = fullfile(get(handles.work_dir,'string'),ev,chn,'result.txt');
 	fid = fopen(path_data,'rt');
 	
@@ -298,8 +312,7 @@ function listbox2_Callback(~, ~, handles)
 	set(handles.text22,'String',get(handles.listbox2,'value'));
     
     % Save R in the catalogue for use in multichannel plot
-    cat = getappdata(handles.figure1, 'cat');
-	cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).R = R{1};
+    cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).R = R{1};
 	setappdata(handles.figure1, 'cat', cat);
     
 	% Set the application data with the sampling rate
@@ -339,8 +352,217 @@ function listbox2_Callback(~, ~, handles)
 	set(handles.uipanel4,'Visible','on');
 	set(handles.uipanel5,'Visible','on');
 	set(handles.uipanel6,'Visible','on');
+    
+    else
+        % MultiChannel mode on
+        ev = ev{1};
+        
+        % Delete existing objects from uimulti
+        ax = findobj(handles.uimulti, 'type','axes');
+        for i = 1:length(ax)
+            try
+            set(ax(i),'Visible','off');
+            delete(ax(i))
+            end
+        end
+        
+        set(handles.slider3, 'Max',1, 'Min',0, 'Enable','off');
+        set(handles.uimulti, 'Position',getappdata(handles.figure1,'uipos'));
+        
+        % Read the channel data
+        n = length(get(handles.listbox2,'Value'));
+        dat = cell(n,4);
+        
+        
+        % Loop over all the selected channels
+        for i=1:n
+            if (isfield(cat.data(get(handles.listbox1,'value')).chn(i), 'R'))
+            if (iscell(cat.data(get(handles.listbox1,'value')).chn(i).R))
+                cat.data(get(handles.listbox1,'value')).chn(i).R = cat.data(get(handles.listbox1,'value')).chn(i).R{1};
+            end
+            if (cat.data(get(handles.listbox1,'value')).chn(i).R > 0)
+                % We have the R value in catalogue. Will read result_ for
+                % speed
+                path_data = fullfile(get(handles.work_dir,'string'),ev,chn{i},'result_');
+                fid = fopen(path_data,'rt');
+                
+                % Sampling rate is the first line in result_
+                sr=fgetl(fid); sr = str2double(sr);
+                A = fscanf (fid, '%g');
+                fclose(fid);
+            
+                acc = A;
+                m = length(A);
+                t = 0:1/sr:(m-1)/sr;
+                
+                % dat is a cell, 
+                % 1 => R in Km. 
+                % 2 => acceleration time series. 
+                % 3 => Time vector for plotting
+                % 4 => Channel Name
+                
+                dat{i,1} = cat.data(get(handles.listbox1,'value')).chn(i).R;
+                dat{i,2} = acc;
+                dat{i,4} = chn{i};
+                dat{i,3} = t;
+                
+                sprintf('reading _')
+            else
+                % Catalogue does not have R value
+                dat{i} = getDat(handles,ev,chn{i},cat,i);
+            end
+            
+            else
+                % Catalogue does not have R value
+                dat{i} = getDat(handles,ev,chn{i},cat,i);
+            end
+            
+            % Read max amps for relative amp plotting
+            ymax(i) = max(abs(dat{i,2}));
+        end
+        
+        if (get(handles.checkbox1,'value'))
+            dat = sortrows(dat,1);
+        end
+
+        xmax = max(t);
+        ymax = max(ymax);
+        
+        
+        for i = 1:n
+    
+            hAx(i) = addAxis(handles);
+            plot (hAx(i),dat{i,3},dat{i,2});
+            
+            xlim([0 xmax]);
+            if (get(handles.checkbox2,'value'))
+                ylim([-ymax ymax])
+            end
+            
+            
+            if (i > 1)
+                set(hAx(i),'xtick',[])
+                set(hAx(i),'xticklabel',[])
+            end
+    
+            ylabel(hAx(i), sprintf('%s \n %s',dat{i,4},dat{i,1}),'FontSize',8 ,'FontWeight','bold');
+        end
+        
+    end
+    
 
     
+function hAx = addAxis(handles)
+    %# look for previous axes
+    ax = findobj(handles.uimulti, 'type','axes');
+
+    if isempty(ax)
+        %# create first axis
+        p = get(handles.uimulti, 'Position');
+        h = p(4);
+        hAx = axes('Parent',handles.uimulti, ...
+            'Units','normalized', 'Position',[0.08 0.05 0.9 .12]);
+        set(hAx, 'Units','pixels');
+
+    else
+        %# get height of figure
+        p = getpixelposition(handles.figure1);
+        h = p(4);
+
+        %# increase panel height, if it is full.
+        p = get(ax, 'Position');
+        if iscell(p), p = cell2mat(p); end
+        
+        %p = get(handles.uipanel1, 'Position');
+        % set(handles.uipanel1, 'Position',[p(1) p(2)-.25 p(3) p(4)+.25]);
+
+        %# compute position of new axis: append on top (y-shifted)
+        
+        p = [p(1,1) max(p(:,2))+h/8 p(1,3) p(1,4)];
+
+        %# create the new axis
+        hAx = axes('Parent',handles.uimulti, ...
+            'Units','pixels', 'Position',p);
+        
+        
+        pui = getpixelposition(handles.uimulti);
+        h = pui(4);
+        
+        if max(p(:,2)) + p(1,4) > h
+            pui = get(handles.uimulti, 'Position');
+            pui = [pui(1) pui(2) pui(3) pui(4) + (max(p(:,2)) + 1.3*p(1,4) - h)];
+            set(handles.uimulti, 'Position',pui);
+        
+
+            %# adjust slider, and call its callback function
+            mx = get(handles.slider3, 'Max');
+            set(handles.slider3, 'Max',mx+(max(p(:,2)) + 1.3*p(1,4) - h), 'Min',0, 'Enable','on')
+            set(handles.slider3, 'Value',mx+(max(p(:,2)) + 1.3*p(1,4) - h))       %# scroll to new space
+            slidee(handles);
+        end
+    end
+
+    %# force GUI update
+    drawnow
+    
+    
+function slidee(handles)
+    offset = get(handles.slider3,'Value');
+
+    %# update panel position
+    p = get(handles.uimulti, 'Position');  %# panel current position
+    set(handles.uimulti, 'Position',[p(1) -offset p(3) p(4)])
+    
+% In multi channel mode, returns the cell containing data.     
+function dat = getDat(handles,ev,chn,cat,i)
+
+    % get indices of selected channels
+    i_ch = get(handles.listbox2,'value');
+    
+    path_data = fullfile(get(handles.work_dir,'string'),ev,chn,'result.txt');
+	fid = fopen(path_data,'rt');
+	
+	% Loop till the end of the header, and read some info
+    R = cell(20,1); sr = cell(20,1);
+    x = 0; j = 1;
+	while (~strcmpi(x,'END_HEADER'))
+   		x=fgetl(fid);
+		[R{j}] = regexp(x,'Distance\sfrom\s\w+\s+:\s+(\d+\.\d+\skm)','tokens');
+		[sr{j}] = regexp(x,'Sampling\srate:\s+(\d+\.\d+)','tokens');
+		j = j + 1;
+    end
+    
+    R  = R{~cellfun(@isempty,R)}{1};
+    cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).R = R{1};
+	sr  = sr{~cellfun(@isempty,sr)}{1};
+    
+    sr = str2double(sr{1});
+    
+    dat{1,1} = R{1};
+    
+    
+    fgetl(fid); fgetl(fid);	%Skip two lines
+    
+    A = fscanf (fid, '%g');
+	fclose(fid);
+	A = reshape(A,15,length(A)/15)';
+    
+    [m n2] = size(A);
+    acc = zeros(m,1);
+    acc = A(:,15);
+    
+    dat{1,2} = acc;
+    dat{1,4} = chn;
+    
+    
+
+    t = 0:1/sr:(m-1)/sr;
+    dat{1,3} = t;
+    setappdata(handles.figure1, 'cat', cat);
+    data = cat.data;
+    save (fullfile(get(handles.work_dir,'string'),'catalogue.mat'),'data');
+    sprintf('reading txt')
+        
 
 % Check the state of catalogue file.
 function checkdata(handles)
@@ -408,7 +630,8 @@ function load_picks(handles)
     		p4 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4;
     		h1 = handles.axes1;
     		axes(h1);
-    		vline ([p1 p2 p3 p4]);
+    		h = vline ([p1 p2 p3 p4]);
+            setappdata(handles.figure1, 'picks', h);
 	end
 
 
@@ -641,6 +864,70 @@ function hotkeys(hObject, eventdata, handles)
 	% P to pick phases
 	if x == 'p'
     		pushbutton5_Callback(hObject, eventdata, handles);
+    end
+    
+    % M to switch to multiChannel mode
+	if x == 'm'
+        mmode = getappdata(handles.figure1, 'multi');
+        mmode = ~mmode;
+        setappdata(handles.figure1, 'multi',mmode);
+        
+        if (mmode)
+            % Hide the axes and buttons for picking
+            set(handles.axes1,'Visible','off');
+            cla(handles.axes1);
+            set(handles.axes4,'Visible','off');
+            cla(handles.axes4);
+            set(handles.axes5,'Visible','off');
+            cla(handles.axes5);
+            try
+                delete(getappdata(handles.figure1,'picks'));
+            end
+            set(handles.uipanel4,'Visible','off');
+            set(handles.uipanel5,'Visible','off');
+            set(handles.uipanel6,'Visible','off');
+            set(handles.listbox3,'Visible','off');
+            set(handles.text7,'Visible','off');
+            set(handles.pushbutton4,'Visible','off');
+            set(handles.pushbutton5,'Visible','off');
+            set(handles.pushbutton6,'Visible','off');
+            set(handles.pushbutton11,'Visible','off');
+            set(handles.edit1,'String','MultiChannel Mode activated');
+            
+            % Set the listbox2 for multiselect
+            set(handles.listbox2,'Max',20);
+            dim = get(handles.listbox2,'Position');
+            dim(2) = dim(2) - dim(4);
+            dim(4) = 2*dim(4);
+            set(handles.listbox2,'Position',dim);
+            
+            % Unhide uimulti
+            set(handles.uimulti,'Visible','on');
+            set(handles.slider3,'Visible','on');
+            set(handles.checkbox1,'Visible','on');
+            set(handles.checkbox2,'Visible','on');
+        else
+            % Only unhide the buttons, axes are turned on by callback on
+            % listbox2
+            set(handles.pushbutton4,'Visible','on');
+            set(handles.pushbutton5,'Visible','on');
+            set(handles.pushbutton6,'Visible','on');
+            set(handles.pushbutton11,'Visible','on');
+            set(handles.edit1,'String','MultiChannel Mode de-activated');
+            set(handles.listbox2,'Value',1);
+            set(handles.listbox2,'Max',1);
+            dim = get(handles.listbox2,'Position');
+            dim(4) = .5*dim(4);
+            dim(2) = dim(2) + dim(4);
+            set(handles.listbox2,'Position',dim);
+            
+            % Hide uimulti
+            set(handles.uimulti,'Visible','off');
+            set(handles.slider3,'Visible','off');
+            set(handles.checkbox1,'Visible','off');
+            set(handles.checkbox2,'Visible','off');
+        end
+           		
 	end
 
 
@@ -1077,7 +1364,7 @@ i = i + 1;
 end
  
 % --- Executes on button press in Debug.
-function Debug_Callback(~, ~, ~)
+function Debug_Callback(hObject, eventdata, handles)
 % Only used while developing this program, to access the 
 % handles at the command prompt.
 keyboard
@@ -1258,3 +1545,43 @@ function popupmenu3_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on slider movement.
+function slider3_Callback(hObject, eventdata, handles)
+% hObject    handle to slider3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+slidee(handles);
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function slider3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on button press in checkbox1.
+function checkbox1_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+listbox2_Callback(hObject, eventdata, handles);
+% Hint: get(hObject,'Value') returns toggle state of checkbox1
+
+
+% --- Executes on button press in checkbox2.
+function checkbox2_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+listbox2_Callback(hObject, eventdata, handles);
+% Hint: get(hObject,'Value') returns toggle state of checkbox2
