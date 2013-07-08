@@ -38,7 +38,7 @@ function pick_ph_OpeningFcn(hObject, ~, handles, varargin)
     warning off
 	% Default work directory when program is loaded
 	%folder_name = '/home/ufizo/work';
-	folder_name = '/home/asingh336/work';
+	folder_name = '/home/';
 	set(handles.work_dir,'string',folder_name);
 	load_listBox(folder_name,handles);
 	setappdata(handles.figure1, 'x', 0);    %Un Xoomed to start with
