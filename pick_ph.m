@@ -11,7 +11,7 @@ function varargout = pick_ph(varargin)
 % Arpit Singh
 % me@arpitsingh.in
 %
-% Last Modified by GUIDE v2.5 27-Jun-2013 15:25:18
+% Last Modified by GUIDE v2.5 15-Nov-2013 20:12:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -37,8 +37,8 @@ end
 function pick_ph_OpeningFcn(hObject, ~, handles, varargin)
     warning off
 	% Default work directory when program is loaded
-	%folder_name = '/home/ufizo/work';
-	folder_name = '/home/';
+	folder_name = '/run/media/ufizo/driveY/data/east';
+	%folder_name = '/home/';
 	set(handles.work_dir,'string',folder_name);
 	load_listBox(folder_name,handles);
 	setappdata(handles.figure1, 'x', 0);    %Un Xoomed to start with
@@ -94,10 +94,14 @@ function listbox1_Callback(~, ~, handles)
 function load_listBox(dir_path,handles)
 
 	cd (dir_path)
-	dir_struct = dir('dir_*');
-	[sorted_names,sorted_index] = sortrows({dir_struct.name}');
+	%dir_struct = dir('dir_*');
+	d = dir;
+    d_names = {d.name}';
+    p = '(^\d{4}\.\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{3})';
+    evts = d_names(~cellfun('isempty',regexp(d_names,p)));
+    [sorted_names,sorted_index] = sortrows(evts);
 	handles.file_names = sorted_names;
-	handles.is_dir = [dir_struct.isdir];
+	%handles.is_dir = [dir_struct.isdir];
 	handles.sorted_index = sorted_index;
 	guidata(handles.figure1,handles)
 	set(handles.listbox1,'String',handles.file_names,'Value',1)
@@ -112,7 +116,7 @@ function load_listBox(dir_path,handles)
 function load_listBox2(dir_path,handles)
 
 cd (dir_path)
-	dir_struct = dir('CN*');
+	dir_struct = dir('*.tra');
 	[sorted_names,sorted_index] = sortrows({dir_struct.name}');
 	handles.file_names = sorted_names;
 	handles.is_dir = [dir_struct.isdir];
@@ -278,7 +282,7 @@ function listbox2_Callback(~, ~, handles)
 	
     % Path to the result.txt for the selected channel
     ev = ev{1}; chn = chn{1};		%% //TO-DO// Properly handle returned cells
-	path_data = fullfile(get(handles.work_dir,'string'),ev,chn,'result.txt');
+	path_data = fullfile(get(handles.work_dir,'string'),ev,chn);
 	fid = fopen(path_data,'rt');
 	
 	% Loop till the end of the header, and read some info
@@ -327,20 +331,20 @@ function listbox2_Callback(~, ~, handles)
 
 	A = fscanf (fid, '%g');
 	fclose(fid);
-	A = reshape(A,15,length(A)/15)';
+	A = reshape(A,3,length(A)/3)';
 
 	% Read the acceleration, velocity, displacement and the original waveform column.
-	ori = A(:,2);       setappdata(handles.figure1, 'ori', ori);
-	acc = A(:,15);      setappdata(handles.figure1, 'acc', acc);
-	dis = A(:,13);      setappdata(handles.figure1, 'dis', dis);
-	vel = A(:,14);      setappdata(handles.figure1, 'vel', vel);
-	degli = A(:,3);     setappdata(handles.figure1, 'degli', degli);
-	detre = A(:,4);     setappdata(handles.figure1, 'detre', detre);
-	windd = A(:,5);     setappdata(handles.figure1, 'windd', windd);
-	fftre = A(:,6);     setappdata(handles.figure1, 'fftre', fftre);
-	fftim = A(:,7);     setappdata(handles.figure1, 'fftim', fftim);
-	fftabs = A(:,8);    setappdata(handles.figure1, 'fftabs', fftabs);
-	filtdd = A(:,9);    setappdata(handles.figure1, 'filtdd', filtdd);
+	%ori = A(:,1);       setappdata(handles.figure1, 'ori', ori);
+	acc = A(:,3);      setappdata(handles.figure1, 'acc', acc);
+	%dis = A(:,1);      setappdata(handles.figure1, 'dis', dis);
+	vel = A(:,2);      setappdata(handles.figure1, 'vel', vel);
+	%degli = A(:,1);     setappdata(handles.figure1, 'degli', degli);
+	%detre = A(:,1);     setappdata(handles.figure1, 'detre', detre);
+	%windd = A(:,1);     setappdata(handles.figure1, 'windd', windd);
+	%fftre = A(:,1);     setappdata(handles.figure1, 'fftre', fftre);
+	%fftim = A(:,1);     setappdata(handles.figure1, 'fftim', fftim);
+	%fftabs = A(:,1);    setappdata(handles.figure1, 'fftabs', fftabs);
+	%filtdd = A(:,1);    setappdata(handles.figure1, 'filtdd', filtdd);
 
 	% Plot it, and show the last modification time.
 	update_plots(handles);
@@ -384,7 +388,7 @@ function listbox2_Callback(~, ~, handles)
             if (cat.data(get(handles.listbox1,'value')).chn(i_ch(i)).R > 0)
                 % We have the R value in catalogue. Will read result_ for
                 % speed
-                path_data = fullfile(get(handles.work_dir,'string'),ev,chn{i},'result_');
+                path_data = fullfile(get(handles.work_dir,'string'),ev,chn{i});
                 fid = fopen(path_data,'rt');
                 
                 % Sampling rate is the first line in result_
@@ -613,14 +617,18 @@ function gencat_Callback(~, ~, handles)
 	set(handles.gencat,'Visible','off');
 	pause (1)
 
-	% Assumption: directory names for events start with dir_
-	% Assumption: channel directory names start with CN
-
-	evts = dir(fullfile(get(handles.work_dir,'string'),'dir_*'));
+	%evts = dir(fullfile(get(handles.work_dir,'string'),'dir_*'));
+        
+	cd (get(handles.work_dir,'string'));
+    d = dir;
+    d_names = {d.name}';
+    p = '(^\d{4}\.\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{3})';
+    evts = d_names(~cellfun('isempty',regexp(d_names,p)));
+    
 	for i = 1:length(evts)
        
-		subdir = evts(i).name;
-		chns = dir(fullfile(get(handles.work_dir,'string'),subdir, 'CN*'));
+		subdir = evts{i};
+		chns = dir(fullfile(get(handles.work_dir,'string'),subdir, '*.tra'));
 		for j = 1:length(chns)
     			data(i).chn(j).ev_name = subdir;
     			data(i).chn(j).ch_name = chns(j).name;
@@ -965,10 +973,10 @@ function hotkeys(hObject, eventdata, handles)
     		if (j < str2double(get(handles.n_chn,'String')))
         		list = get(handles.listbox2,'String');
 			% It it is a trio of EW - NS- Z channels, copy the picks and Q to rest of the two
-        		[~, b] = regexp(list{get(handles.listbox2,'value')},'(\S*?\.\.\S\S)E','match');
+        		[~, b] = regexp(list{get(handles.listbox2,'value')},'(\S*?\.\S\S)E\.tra','match');
         		if (b)
-            			[a b] = regexp(list{get(handles.listbox2,'value')},'(\S*?\.\.\S\S)\S','tokens','match');
-            			if strcmp(strcat(a{1}{1},'N'),list{get(handles.listbox2,'value')+1}) && strcmp(strcat(a{1}{1},'Z'),list{get(handles.listbox2,'value')+2}) 
+            			[a b] = regexp(list{get(handles.listbox2,'value')},'(\S*?\.\S\S)\S\.tra','tokens','match');
+            			if strcmp(strcat(a{1}{1},'N.tra'),list{get(handles.listbox2,'value')+1}) && strcmp(strcat(a{1}{1},'Z.tra'),list{get(handles.listbox2,'value')+2}) 
                 			cat = getappdata(handles.figure1, 'cat');
                 			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
                 			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).Q =  get(handles.listbox3,'value');
@@ -1608,3 +1616,11 @@ function checkbox2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 listbox2_Callback(hObject, eventdata, handles);
 % Hint: get(hObject,'Value') returns toggle state of checkbox2
+
+
+% --- Executes on button press in pushbutton12.
+function pushbutton12_Callback(hObject, eventdata, handles)
+aaa = 22
+% hObject    handle to pushbutton12 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
