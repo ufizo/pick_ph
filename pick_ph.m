@@ -313,7 +313,7 @@ function listbox2_Callback(~, ~, handles)
 	set(handles.text16,'String',depth);
 	set(handles.text17,'String',ev_date);
 	set(handles.text21,'String',get(handles.listbox1,'value'));
-	set(handles.text22,'String',get(handles.listbox2,'value'));
+    set(handles.text22,'String',get(handles.listbox2,'value'));
     
     % Save R in the catalogue for use in multichannel plot
     cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).R = R{1};
@@ -607,8 +607,6 @@ function checkdata(handles)
     		set(handles.edit1,'String','Catalogue loaded!');
 	end
     
-    
-
 
 % --- Executes on button to generate catalogue
 function gencat_Callback(~, ~, handles)
@@ -893,7 +891,7 @@ function hotkeys(hObject, eventdata, handles)
 	end
 
 	% P to pick phases
-	if x == 'p'
+	if x == 'q'
     		pushbutton5_Callback(hObject, eventdata, handles);
     end
     
@@ -965,75 +963,7 @@ function hotkeys(hObject, eventdata, handles)
 	% For arrowKey controls
 	%x=double(x);
 
-	%Left arrow key (28) to go to previous channel
-	%Right arrow key (29) to go to next channel	
-	%if x == 29
-	if x == 'd'
-    		j = get(handles.listbox2,'value');
-    		if (j < str2double(get(handles.n_chn,'String')))
-        		list = get(handles.listbox2,'String');
-			% It it is a trio of EW - NS- Z channels, copy the picks and Q to rest of the two
-        		[~, b] = regexp(list{get(handles.listbox2,'value')},'(\S*?\.\S\S)E\.tra','match');
-        		if (b)
-            			[a b] = regexp(list{get(handles.listbox2,'value')},'(\S*?\.\S\S)\S\.tra','tokens','match');
-            			if strcmp(strcat(a{1}{1},'N.tra'),list{get(handles.listbox2,'value')+1}) && strcmp(strcat(a{1}{1},'Z.tra'),list{get(handles.listbox2,'value')+2}) 
-                			cat = getappdata(handles.figure1, 'cat');
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).Q =  get(handles.listbox3,'value');
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).Q =  get(handles.listbox3,'value');
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p1 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p1;
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p2 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p2;
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p3 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p3;
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p4 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4;              
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p1 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p1;
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p2 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p2;
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p3 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p3;
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p4 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4;  
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0);                 
-                			setappdata(handles.figure1, 'cat', cat);
-			
-					if (j+2 < str2double(get(handles.n_chn,'String')))
-                    				set(handles.listbox2,'value',j+3);
-                			else
-                    				set(handles.listbox2,'value',j+2);
-                			end
-
-                			listbox2_Callback(hObject, eventdata, handles);
-            			else
-                			cat = getappdata(handles.figure1, 'cat');
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
-                			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
-                			setappdata(handles.figure1, 'cat', cat);                
-                			set(handles.listbox2,'value',j+1);
-                			listbox2_Callback(hObject, eventdata, handles);
-            			end
-        		else
-
-            			cat = getappdata(handles.figure1, 'cat');
-            			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
-            			cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
-            			setappdata(handles.figure1, 'cat', cat);            
-            			set(handles.listbox2,'value',j+1);
-            			listbox2_Callback(hObject, eventdata, handles);
-        		end
-    		end
-
-    		if (j == str2double(get(handles.n_chn,'String')))
-        		cat = getappdata(handles.figure1, 'cat');
-        		cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
-        		cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
-        		setappdata(handles.figure1, 'cat', cat);
-        		set(handles.listbox1,'value',get(handles.listbox1,'value')+1);
-        		listbox1_Callback(hObject, eventdata, handles);
-        		set(handles.listbox2,'value',1);
-        		listbox2_Callback(hObject, eventdata, handles);
-    		end
-	end
-
-
-
-	%if x == 28
-	if x == 'a'
+    if x == 'a'
     		j = get(handles.listbox2,'value');
     		if (j > 1)
         		set(handles.listbox2,'value',j-1);
@@ -1043,6 +973,62 @@ function hotkeys(hObject, eventdata, handles)
         		setappdata(handles.figure1, 'cat', cat);
         		listbox2_Callback(hObject, eventdata, handles);
     		end
+    end
+    
+    if x == 'd'
+        if (get(handles.listbox2,'value') == str2double(get(handles.n_chn,'String')))
+            set(handles.listbox1,'value',get(handles.listbox1,'value')+1);
+            listbox1_Callback(hObject, eventdata, handles);
+        	set(handles.listbox2,'value',1);
+        	listbox2_Callback(hObject, eventdata, handles);
+            return
+        end
+                
+        
+        list = get(handles.listbox2,'String');
+         
+        % If it is a trio of EW - NS- Z channels, copy the picks and Q to rest of the two
+        [a, b] = regexp(list{get(handles.listbox2,'value')},'(\S*?\.\S\S)E\.tra','tokens','match');
+        
+        if (~isempty(b) && strcmp(strcat(a{1}{1},'N.tra'),list{get(handles.listbox2,'value')+1}) && strcmp(strcat(a{1}{1},'Z.tra'),list{get(handles.listbox2,'value')+2}) )
+            
+            
+            cat = getappdata(handles.figure1, 'cat');
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).Q =  get(handles.listbox3,'value');
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).Q =  get(handles.listbox3,'value');
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p1 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p1;
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p2 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p2;
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p3 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p3;
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+1).p4 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4;              
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p1 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p1;
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p2 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p2;
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p3 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p3;
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')+2).p4 = cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).p4;  
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0);                 
+            setappdata(handles.figure1, 'cat', cat);
+            
+            
+            if (get(handles.listbox2,'value') + 3 > str2double(get(handles.n_chn,'String')))
+                return
+            end
+            set(handles.listbox2,'value',get(handles.listbox2,'value')+3);
+            listbox2_Callback(hObject, eventdata, handles); 		
+            
+        else
+            
+            cat = getappdata(handles.figure1, 'cat');
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).Q =  get(handles.listbox3,'value');
+            cat.data(get(handles.listbox1,'value')).chn(get(handles.listbox2,'value')).modtime = datestr(clock, 0); 
+            setappdata(handles.figure1, 'cat', cat); 
+            
+            if (get(handles.listbox2,'value') + 3 > str2double(get(handles.n_chn,'String')))
+                return
+            end
+            set(handles.listbox2,'value',get(handles.listbox2,'value')+1);
+            listbox2_Callback(hObject, eventdata, handles); 
+    		
+        end
 	end
 
 
@@ -1098,7 +1084,7 @@ function hotkeys(hObject, eventdata, handles)
         			set(handles.uipanel6,'SelectedObject',handles.radiobutton9);
     		end
     		update_plots(handles);
-	end
+    end
 
 
 % //TO-DO// - Unfinished.
@@ -1261,7 +1247,7 @@ for i = 1:length(cat.data)
     if ~isempty(cat.data(i).chn)
         for j = 1:length(cat.data(i).chn)
             if (cat.data(i).chn(j).Q <= 4 && cat.data(i).chn(j).p1 > 0)
-            path_data = fullfile(get(handles.work_dir,'string'),cat.data(i).chn(j).ev_name,cat.data(i).chn(j).ch_name,'result.txt');
+            path_data = fullfile(get(handles.work_dir,'string'),cat.data(i).chn(j).ev_name,cat.data(i).chn(j).ch_name);
             fid = fopen(path_data,'rt');
             R = cell(20); ev_date = cell(20); M = cell(20); depth = cell(20); sr = cell(20); ep_lat = cell(20); ep_lon = cell(20); st_lat = cell(20); st_lon = cell(20);
             x = 0; k = 1;
@@ -1284,7 +1270,7 @@ for i = 1:length(cat.data)
             % Load the entire data into A, and reshape into 15 column format.
             A = fscanf (fid, '%g');
             fclose(fid);
-            A = reshape(A,15,length(A)/15)';
+            A = reshape(A,3,length(A)/3)';
 
             R = R{find(~cellfun(@isempty,R))}{1};
             ev_date = ev_date{find(~cellfun(@isempty,ev_date))}{1};
@@ -1297,8 +1283,8 @@ for i = 1:length(cat.data)
             st_lat = st_lat{find(~cellfun(@isempty,st_lat))}{1};
             st_lon = st_lon{find(~cellfun(@isempty,st_lon))}{1};
             
-            station = strrep(cat.data(i).chn(j).ch_name, 'CN.', '');
-            station = regexp(station,'\.\.','split');
+            station = cat.data(i).chn(j).ch_name;
+            station = regexp(station,'\.','split');
             sta = station{1}; comp = station{2};
             date_data = regexp(ev_date,'/','split');
             date_data = date_data{1}; yy = date_data{1}; mm = date_data{2}; dd = date_data{3};
@@ -1321,13 +1307,13 @@ for i = 1:length(cat.data)
             
             p1 = round (cat.data(i).chn(j).p1*str2double(sr{1}));
             p2 = round (cat.data(i).chn(j).p4*str2double(sr{1}));
-            acc = A(:,15);
+            acc = A(:,3);
             
             fas = get_FAS(acc(p1:p2),str2double(sr{1}),handles);
             psa = get_PSA(acc(p1:p2),str2double(sr{1}),handles);
                         
-            pga = max(abs(A(:,15)));
-            pgv = max(abs(A(:,14)));
+            pga = max(abs(A(:,3)));
+            pgv = max(abs(A(:,2)));
             
             fprintf(fw,',,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,,%s,%s,%d,%s,%s,%s,%d,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.9f,%.9f',yy,mm,dd,hr,min,sec,ep_lat{1},ep_lon{1},depth{1},M{1},R{1},sta,comp,st_lat{1},st_lon{1},vs30_1,class_1,source_1,sr{1},cat.data(i).chn(j).Q,psa,pga,pgv);
             fprintf(fw,'\n');
@@ -1367,7 +1353,7 @@ fclose(fid);
 
 
 cd(get(handles.work_dir,'string'));
-system('./Beh1');
+system('Beh1');
 
 load psa.out;
 %fpsa = psa(1,2:end); 
